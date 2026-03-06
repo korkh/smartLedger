@@ -1,4 +1,4 @@
-using Domain.Entitites;
+using Application.Transactions;
 
 namespace Application.Clients
 {
@@ -8,7 +8,8 @@ namespace Application.Clients
 
         // Лист "Клиенты", колонка "Наименование"
         public string ClientId { get; set; }
-        public string Name { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
 
         // Лист "Клиенты", колонка "ИИН/БИН"
         public string BinIin { get; set; }
@@ -54,7 +55,7 @@ namespace Application.Clients
         public string PersonalInfo { get; set; }
 
         // Связи
-        public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
-        public ClientTariff CurrentTariff { get; set; }
+        public ICollection<TransactionDto> Transactions { get; set; } = new List<TransactionDto>();
+        public ClientTariffDto CurrentTariff { get; set; }
     }
 }

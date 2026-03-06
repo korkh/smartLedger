@@ -19,7 +19,8 @@ namespace Application.Services
         public async Task<ClientDashboardDto> GetDashboardDataAsync(
             int clientId,
             int year,
-            int month
+            int month,
+            string currentUserName
         )
         {
             // Подгружаем клиента вместе с транзакциями и текущим тарифом
@@ -27,7 +28,10 @@ namespace Application.Services
                 .Clients.Include(c => c.CurrentTariff)
                 .Include(c => c.Transactions)
                     .ThenInclude(t => t.Service)
-                .FirstOrDefaultAsync(c => c.Id == clientId);
+                // Проверка: ID совпадает И текущий пользователь является ответственным
+                .FirstOrDefaultAsync(c =>
+                    c.Id == clientId && c.ResponsiblePersonContact.Contains(currentUserName)
+                );
 
             if (client == null)
                 return null;
@@ -44,7 +48,8 @@ namespace Application.Services
             return new ClientDashboardDto
             {
                 Id = client.Id,
-                Name = client.Name,
+                FirstName = client.FirstName,
+                LastName = client.LastName,
                 TaxRegime = client.TaxRegime,
 
                 // НДС "Спидометр"

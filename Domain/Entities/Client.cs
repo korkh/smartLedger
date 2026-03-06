@@ -11,7 +11,11 @@ namespace Domain.Entities
 
         [Required]
         [MaxLength(255)]
-        public string Name { get; set; }
+        public string FirstName { get; set; }
+
+        [Required]
+        [MaxLength(255)]
+        public string LastName { get; set; }
 
         [MaxLength(12)] // Standard length for BIN/IIN in Kazakhstan
         public string BinIin { get; set; }

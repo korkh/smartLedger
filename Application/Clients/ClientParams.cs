@@ -4,7 +4,8 @@ namespace Application.Clients
 {
     public class ClientParams : PagingParams
     {
-        public string Name { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
 
         // Лист "Клиенты", колонка "ИИН/БИН"
         public string BinIin { get; set; }
@@ -20,5 +21,9 @@ namespace Application.Clients
 
         // Лист "Клиенты", колонка "Степень налогового риска"
         public string TaxRiskLevel { get; set; }
+
+        public string SortField { get; set; } = "firstname";
+        public string Order { get; set; } = "asc";
+        public string Search { get; set; }
     }
 }
