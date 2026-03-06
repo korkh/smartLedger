@@ -18,40 +18,42 @@ namespace Storage
         {
             base.OnModelCreating(builder);
 
-            // Client - Transactions relationship configuration
+            // 1. СВЯЗЬ КЛИЕНТ - ТРАНЗАКЦИИ (Один-ко-многим)
             builder
                 .Entity<Client>()
                 .HasMany(x => x.Transactions)
                 .WithOne(x => x.Client)
                 .HasForeignKey(x => x.ClientId)
-                .OnDelete(DeleteBehavior.Cascade); // Example: delete transactions if client is removed
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Client - Tariffs relationship configuration
-            builder.Entity<ClientTariff>().Property(p => p.MonthlyFee).HasPrecision(18, 2);
+            // 2. СВЯЗЬ КЛИЕНТ - ТАРИФ (Строго Один-к-одному)
+            // Это позволит тебе делать .Include(c => c.CurrentTariff) в Dashboard
+            builder
+                .Entity<Client>()
+                .HasOne(c => c.CurrentTariff)
+                .WithOne(t => t.Client)
+                .HasForeignKey<ClientTariff>(t => t.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Tariffs - Services relationship configuration
-            builder.Entity<ServiceReference>().Property(p => p.BasePrice).HasPrecision(18, 2);
+            // 3. ТОЧНОСТЬ ДЕСЯТИЧНЫХ ЧИСЕЛ (Важно для налогов и НДС)
+            builder.Entity<Transaction>(entity =>
+            {
+                entity.Property(e => e.ExtraServiceAmount).HasPrecision(18, 2);
+            });
 
-            // Configuration for ServiceReference
             builder.Entity<ServiceReference>(entity =>
             {
                 entity.Property(e => e.BasePrice).HasPrecision(18, 2);
-                // Default value for the new flag
                 entity.Property(e => e.AffectsNdsThreshold).HasDefaultValue(false);
             });
 
-            // Configuration for ClientTariff
             builder.Entity<ClientTariff>(entity =>
             {
                 entity.Property(e => e.MonthlyFee).HasPrecision(18, 2);
-                // One-to-one or One-to-many relationship depending on your needs
-                entity
-                    .HasOne(d => d.Client)
-                    .WithMany() // or WithOne(c => c.CurrentTariff)
-                    .HasForeignKey(d => d.ClientId);
+                // УДАЛИЛ ТУТ ПОВТОРНУЮ КОНФИГУРАЦИЮ СВЯЗИ .HasOne().WithMany()
             });
 
-            // Seeding roles
+            // 4. СИДИРОВАНИЕ РОЛЕЙ
             builder
                 .Entity<Role>()
                 .HasData(

@@ -53,11 +53,10 @@ namespace Application.Clients
 
                 try
                 {
-                    // 1. Начинаем с Entity (без Include, они подтянутся через ProjectTo)
+                    // 1. Инициализация запроса (Entity уровень)
                     var query = _context.Clients.AsNoTracking();
 
-                    // 2. Сначала фильтруем ENTITIES (так быстрее для БД)
-                    // Безопасность: текущий менеджер видит только своих клиентов
+                    // 2. Базовая фильтрация и безопасность (Entity уровень - максимально быстро)
                     query = query.Where(x => x.ResponsiblePersonContact.Contains(userName));
 
                     if (!string.IsNullOrEmpty(request.Params.BinIin))
@@ -69,24 +68,27 @@ namespace Application.Clients
                     if (!string.IsNullOrEmpty(request.Params.NdsStatus))
                         query = query.Where(x => x.NdsStatus == request.Params.NdsStatus);
 
-                    // 3. Проекция в DTO (AutoMapper сам сделает нужные Joins)
+                    // 3. Проекция в DTO
                     var dtoQuery = query.ProjectTo<ClientDto>(_mapper.ConfigurationProvider);
 
-                    // 4. Глобальный поиск через ISearchExpressionBuilder (уже по DTO)
-                    if (!string.IsNullOrEmpty(request.Params.Search))
+                    // 4. Глобальный поиск (уже по DTO полям)
+                    // Важно: ISearchExpressionBuilder теперь работает внутри IQueryable
+                    if (!string.IsNullOrWhiteSpace(request.Params.Search))
                     {
                         _logger.LogDebug(
                             "Применение глобального поиска: {SearchText}",
                             request.Params.Search
                         );
+
                         var searchPredicate = _searchBuilder.BuildSearchExpression<ClientDto>(
                             request.Params.Search
                         );
+
                         dtoQuery = dtoQuery.Where(searchPredicate);
                     }
 
-                    // 5. Динамическая сортировка
-                    dtoQuery = request.Params.SortField.ToLower() switch
+                    // 5. Динамическая сортировка (уже по DTO)
+                    dtoQuery = (request.Params.SortField?.ToLower()) switch
                     {
                         "firstname" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(e => e.FirstName)
@@ -94,10 +96,13 @@ namespace Application.Clients
                         "lastname" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(e => e.LastName)
                             : dtoQuery.OrderByDescending(e => e.LastName),
-                        _ => dtoQuery.OrderBy(e => e.FirstName),
+                        "bin" => request.Params.Order == "asc"
+                            ? dtoQuery.OrderBy(e => e.BinIin)
+                            : dtoQuery.OrderByDescending(e => e.BinIin),
+                        _ => dtoQuery.OrderBy(e => e.FirstName), // Дефолтная сортировка
                     };
 
-                    // 6. Возвращаем пагинированный результат
+                    // 6. Пагинация и выполнение запроса в БД
                     var pagedList = await PagedList<ClientDto>.CreateAsync(
                         dtoQuery,
                         request.Params.PageNumber,
@@ -116,11 +121,11 @@ namespace Application.Clients
                 {
                     _logger.LogError(
                         ex,
-                        "Ошибка при получении списка клиентов для пользователя {User}",
+                        "Критическая ошибка при получении списка клиентов для {User}",
                         userName
                     );
                     return Result<PagedList<ClientDto>>.Failure(
-                        "Произошла ошибка при загрузке списка клиентов."
+                        "Произошла ошибка при загрузке данных."
                     );
                 }
             }

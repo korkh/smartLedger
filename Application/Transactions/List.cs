@@ -1,3 +1,4 @@
+using Application.Common.Interfaces;
 using Application.Core;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -19,12 +20,22 @@ namespace Application.Transactions
         {
             private readonly DataContext _context;
             private readonly IMapper _mapper;
+            private readonly ISearchExpressionBuilder _searchBuilder;
+            private readonly IUserAccessor _userAccessor;
             private readonly ILogger<List> _logger;
 
-            public Handler(DataContext context, IMapper mapper, ILogger<List> logger)
+            public Handler(
+                DataContext context,
+                IMapper mapper,
+                ISearchExpressionBuilder searchBuilder,
+                IUserAccessor userAccessor,
+                ILogger<List> logger
+            )
             {
                 _context = context;
                 _mapper = mapper;
+                _searchBuilder = searchBuilder;
+                _userAccessor = userAccessor;
                 _logger = logger;
             }
 
@@ -33,27 +44,30 @@ namespace Application.Transactions
                 CancellationToken cancellationToken
             )
             {
+                var userName = _userAccessor.GetUserName();
                 _logger.LogInformation(
-                    "Запрос списка транзакций с параметрами: {@Params}",
+                    "User {User} is requesting transactions with parameters: {@Params}",
+                    userName,
                     request.Params
                 );
 
                 try
                 {
-                    // 1. Начинаем построение запроса (AsNoTracking для производительности)
-                    var query = _context.Transactions.AsNoTracking();
+                    // 1. Base Query with Security: only transactions of clients responsible by current user
+                    var query = _context
+                        .Transactions.AsNoTracking()
+                        .Where(t => t.Client.ResponsiblePersonContact.Contains(userName));
 
-                    // 2. Фильтрация по Клиенту
+                    // 2. Entity Level Filters (Handling Guid? to int conversion if necessary)
                     if (request.Params.ClientId.HasValue)
                     {
-                        // Приводим Guid к int, если в БД Id целочисленный
+                        // Safely parsing or casting depending on how your Params are defined
                         if (int.TryParse(request.Params.ClientId.ToString(), out int clientId))
                         {
                             query = query.Where(x => x.ClientId == clientId);
                         }
                     }
 
-                    // 3. Фильтрация по Услуге
                     if (request.Params.ServiceId.HasValue)
                     {
                         if (int.TryParse(request.Params.ServiceId.ToString(), out int serviceId))
@@ -62,22 +76,30 @@ namespace Application.Transactions
                         }
                     }
 
-                    // 4. Фильтрация по периоду (Критично для налогов!)
                     if (request.Params.StartDate.HasValue)
                         query = query.Where(x => x.Date >= request.Params.StartDate.Value);
 
                     if (request.Params.EndDate.HasValue)
                         query = query.Where(x => x.Date <= request.Params.EndDate.Value);
 
-                    // 5. Фильтрация по статусу
                     if (!string.IsNullOrEmpty(request.Params.Status))
                         query = query.Where(x => x.Status == request.Params.Status);
 
-                    // 6. Проекция в DTO (AutoMapper подтянет ClientName и ServiceName через Joins)
+                    // 3. Project to DTO (Automapper handles related data joins)
                     var dtoQuery = query.ProjectTo<TransactionDto>(_mapper.ConfigurationProvider);
 
-                    // 7. Сортировка (по умолчанию самая свежая дата сверху)
-                    dtoQuery = request.Params.SortField.ToLower() switch
+                    // 4. Global Search via Expression Trees
+                    if (!string.IsNullOrWhiteSpace(request.Params.Search))
+                    {
+                        var searchPredicate = _searchBuilder.BuildSearchExpression<TransactionDto>(
+                            request.Params.Search
+                        );
+                        dtoQuery = dtoQuery.Where(searchPredicate);
+                    }
+
+                    // 5. Dynamic Sorting
+                    var sortField = request.Params.SortField?.ToLower() ?? "date";
+                    dtoQuery = sortField switch
                     {
                         "date" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(t => t.Date)
@@ -85,27 +107,30 @@ namespace Application.Transactions
                         "clientname" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(t => t.ClientName)
                             : dtoQuery.OrderByDescending(t => t.ClientName),
+                        "amount" => request.Params.Order == "asc"
+                            ? dtoQuery.OrderBy(t => t.ExtraServiceAmount)
+                            : dtoQuery.OrderByDescending(t => t.ExtraServiceAmount),
                         _ => dtoQuery.OrderByDescending(t => t.Date),
                     };
 
-                    // 8. Пагинация и возврат результата
+                    // 6. Pagination and Result
                     var pagedList = await PagedList<TransactionDto>.CreateAsync(
                         dtoQuery,
                         request.Params.PageNumber,
                         request.Params.PageSize
                     );
 
-                    _logger.LogInformation(
-                        "Успешно загружено {Count} транзакций.",
-                        pagedList.Count
-                    );
                     return Result<PagedList<TransactionDto>>.Success(pagedList);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Ошибка при получении списка транзакций.");
+                    _logger.LogError(
+                        ex,
+                        "Error occurred while fetching transactions for user {User}",
+                        userName
+                    );
                     return Result<PagedList<TransactionDto>>.Failure(
-                        "Произошла ошибка при загрузке журнала транзакций."
+                        "An error occurred while loading the transaction journal."
                     );
                 }
             }
