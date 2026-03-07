@@ -10,7 +10,7 @@ using Storage;
 
 namespace Application.Transactions
 {
-    public class Create
+    public class CreateTransaction
     {
         public class Command : IRequest<Result<Unit>>
         {
@@ -30,9 +30,9 @@ namespace Application.Transactions
         {
             private readonly DataContext _context;
             private readonly IMapper _mapper;
-            private readonly ILogger<Create> _logger;
+            private readonly ILogger<CreateTransaction> _logger;
 
-            public Handler(DataContext context, IMapper mapper, ILogger<Create> logger)
+            public Handler(DataContext context, IMapper mapper, ILogger<CreateTransaction> logger)
             {
                 _context = context;
                 _mapper = mapper;

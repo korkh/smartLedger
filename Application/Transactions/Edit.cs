@@ -43,17 +43,10 @@ namespace Application.Transactions
             )
             {
                 // Пытаемся распарсить ID из DTO (так как в DTO он Guid/string, а в базе int)
-                if (!int.TryParse(request.Transaction.Id.ToString(), out int transactionId))
-                {
-                    _logger.LogWarning(
-                        "Некорректный формат ID транзакции: {Id}",
-                        request.Transaction.Id
-                    );
-                    return Result<Unit>.Failure("Некорректный идентификатор транзакции.");
-                }
+                var transactionId = request.Transaction.Id;
 
                 _logger.LogInformation(
-                    "Запрос на изменение транзакции ID: {Id} для клиента: {Client}",
+                    "Request to edit transaction ID: {Id} for client: {Client}",
                     transactionId,
                     request.Transaction.ClientName
                 );

@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Storage
 {
@@ -7,20 +8,11 @@ namespace Storage
     {
         public static async Task SeedData(DataContext context, UserManager<User> userManager)
         {
-            // 1. Создание пользователей (Менеджеров)
+            // 1. Create Users (Managers)
             if (!userManager.Users.Any())
             {
                 var users = new List<User>
                 {
-                    new User
-                    {
-                        FirstName = "Anna",
-                        LastName = "Accountant",
-                        UserName = "anna",
-                        Email = "anna@test.com",
-                        EmailConfirmed = true,
-                        Position = "Senior Accountant",
-                    },
                     new User
                     {
                         FirstName = "Igor",
@@ -29,6 +21,15 @@ namespace Storage
                         Email = "igor@test.com",
                         EmailConfirmed = true,
                         Position = "Junior Accountant",
+                    },
+                    new User
+                    {
+                        FirstName = "Anna",
+                        LastName = "Accountant",
+                        UserName = "anna",
+                        Email = "anna@test.com",
+                        EmailConfirmed = true,
+                        Position = "Senior Accountant",
                     },
                     new User
                     {
@@ -44,6 +45,7 @@ namespace Storage
                 foreach (var user in users)
                 {
                     await userManager.CreateAsync(user, "Pa$$w0rd");
+                    // Roles should be created in a separate Identity Seed or check if they exist
                     if (user.UserName == "admin")
                         await userManager.AddToRoleAsync(user, "Admin");
                     else if (user.UserName == "anna")
@@ -53,7 +55,7 @@ namespace Storage
                 }
             }
 
-            // 2. Справочник услуг
+            // 2. Service Directory
             if (!context.ServiceReferences.Any())
             {
                 var services = new List<ServiceReference>
@@ -63,66 +65,78 @@ namespace Storage
                         Name = "Consultation",
                         BasePrice = 5000,
                         AffectsNdsThreshold = false,
+                        StandardTimeMinutes = 30,
                     },
                     new ServiceReference
                     {
                         Name = "Tax Filing",
                         BasePrice = 15000,
                         AffectsNdsThreshold = true,
+                        StandardTimeMinutes = 120,
                     },
                     new ServiceReference
                     {
                         Name = "Bookkeeping",
                         BasePrice = 25000,
                         AffectsNdsThreshold = true,
+                        StandardTimeMinutes = 480,
                     },
                 };
                 context.ServiceReferences.AddRange(services);
                 await context.SaveChangesAsync();
             }
 
-            // 3. Создание 20 клиентов
+            // 3. Create 20 Clients with Tariffs and Transactions
             if (!context.Clients.Any())
             {
-                var serviceList = context.ServiceReferences.ToList();
+                var serviceList = await context.ServiceReferences.ToListAsync();
+                var clients = new List<Client>();
+
                 for (int i = 1; i <= 20; i++)
                 {
+                    var responsible = i % 2 == 0 ? "anna" : "igor";
+
                     var client = new Client
                     {
+                        // Id will be generated automatically as Guid
                         FirstName = $"ClientFirstName_{i}",
                         LastName = $"Company_{i}",
                         BinIin = $"1234567890{i:D2}",
                         TaxRegime = i % 2 == 0 ? "УР" : "ОУР",
-                        NdsStatus = i > 15 ? "Плательщик НДС" : "Не плательщик", // 5 плательщиков для теста
-                        ResponsiblePersonContact = i % 2 == 0 ? "anna" : "igor", // Распределяем между менеджерами
+                        NdsStatus = i > 15 ? "Taxpayer" : "Non-taxpayer",
+                        ResponsiblePersonContact = responsible,
+                        Address = $"Street {i}, Oslo, Norway",
                         CurrentTariff = new ClientTariff
                         {
                             MonthlyFee = 30000,
                             OperationsLimit = 50,
                             CommunicationMinutesLimit = 120,
-                            CarriedOverOperations = 0,
-                            CarriedOverMinutes = 0,
+                            ContractDate = DateTime.UtcNow.AddMonths(-1),
                         },
                     };
 
-                    // Генерируем транзакции для каждого клиента (имитация данных из Excel)
-                    for (int t = 1; t <= 10; t++)
+                    // Generate transactions for each client
+                    for (int t = 1; t <= 5; t++)
                     {
+                        var service = serviceList[t % serviceList.Count];
                         client.Transactions.Add(
                             new Transaction
                             {
-                                Date = DateTime.Now.AddDays(-t * 3),
-                                OperationsCount = 2,
-                                CommunicationTimeMinutes = 15,
-                                ExtraServiceAmount = 10000 * t, // Для проверки порога НДС
-                                Status = "Завершен",
-                                Service = serviceList[t % serviceList.Count],
-                                PerformerName = client.ResponsiblePersonContact,
+                                Date = DateTime.UtcNow.AddDays(-t * 2),
+                                OperationsCount = 1,
+                                ActualTimeMinutes = service.StandardTimeMinutes,
+                                CommunicationTimeMinutes = 10,
+                                ExtraServiceAmount = i > 10 ? 5000 : 0,
+                                Status = "Completed",
+                                ServiceId = service.Id, // Link by Guid
+                                PerformerName = responsible,
                             }
                         );
                     }
-                    context.Clients.Add(client);
+                    clients.Add(client);
                 }
+
+                context.Clients.AddRange(clients);
                 await context.SaveChangesAsync();
             }
         }

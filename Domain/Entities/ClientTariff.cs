@@ -6,9 +6,9 @@ namespace Domain.Entities
     public class ClientTariff
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
-        public int ClientId { get; set; }
+        public Guid ClientId { get; set; }
 
         [ForeignKey("ClientId")]
         public virtual Client Client { get; set; }

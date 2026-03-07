@@ -9,7 +9,7 @@ using Storage;
 
 namespace Application.Clients
 {
-    public class List
+    public class GetList
     {
         public class Query : IRequest<Result<PagedList<ClientDto>>>
         {
@@ -22,14 +22,14 @@ namespace Application.Clients
             private readonly IMapper _mapper;
             private readonly ISearchExpressionBuilder _searchBuilder;
             private readonly IUserAccessor _userAccessor;
-            private readonly ILogger<List> _logger; // Logger field
+            private readonly ILogger<GetList> _logger; // Logger field
 
             public Handler(
                 DataContext context,
                 IMapper mapper,
                 ISearchExpressionBuilder searchBuilder,
                 IUserAccessor userAccessor,
-                ILogger<List> logger
+                ILogger<GetList> logger
             ) // Injected logger
             {
                 _context = context;

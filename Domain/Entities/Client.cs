@@ -5,7 +5,7 @@ namespace Domain.Entities
     public class Client
     {
         [Key]
-        public int Id { get; set; } // Matches int key in IdentityDbContext
+        public Guid Id { get; set; } // Matches int key in IdentityDbContext
 
         // --- LEVEL 1 (Basic Information) ---
 

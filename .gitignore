@@ -3,6 +3,12 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# Secrets
+# Секреты и настройки
+appsettings.Development.json
+appsettings.Local.json
+*.usersecrets
+
 # dotenv files
 .env
 

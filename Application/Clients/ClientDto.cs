@@ -7,7 +7,7 @@ namespace Application.Clients
         // --- УРОВЕНЬ 1 (Базовая информация) ---
 
         // Лист "Клиенты", колонка "Наименование"
-        public string ClientId { get; set; }
+        public Guid Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
 

@@ -9,19 +9,19 @@ namespace Domain.Entities
     public class Transaction
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         [Required]
         public DateTime Date { get; set; }
 
         // Foreign key to Client
-        public int ClientId { get; set; }
+        public Guid ClientId { get; set; }
 
         [ForeignKey("ClientId")]
         public virtual Client Client { get; set; }
 
         // Foreign key to Service Reference (from Directory sheet)
-        public int ServiceId { get; set; }
+        public Guid ServiceId { get; set; }
 
         [ForeignKey("ServiceId")]
         public virtual ServiceReference Service { get; set; }

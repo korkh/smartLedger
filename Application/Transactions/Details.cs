@@ -12,7 +12,7 @@ namespace Application.Transactions
     {
         public class Query : IRequest<Result<TransactionDto>>
         {
-            public int Id { get; set; }
+            public Guid Id { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, Result<TransactionDto>>

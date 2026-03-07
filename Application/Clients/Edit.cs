@@ -42,17 +42,17 @@ namespace Application.Clients
                 CancellationToken cancellationToken
             )
             {
-                // 1. Проверяем ID
-                if (!int.TryParse(request.Client.ClientId, out int id))
-                    return Result<Unit>.Failure("Некорректный ID клиента.");
-
+                var clientId = request.Client.Id;
                 // 2. Находим существующего клиента
                 var client = await _context
                     .Clients.Include(x => x.CurrentTariff)
-                    .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+                    .FirstOrDefaultAsync(x => x.Id == clientId, cancellationToken);
 
                 if (client == null)
+                {
+                    _logger.LogWarning("Клиент с ID {Id} не был найден", clientId);
                     return null;
+                }
 
                 // 3. Маппинг (Обновляем только поля из DTO)
                 _mapper.Map(request.Client, client);
@@ -72,14 +72,14 @@ namespace Application.Clients
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
-                    _logger.LogError(ex, "Конфликт параллелизма для клиента {ClientId}", id);
+                    _logger.LogError(ex, "Конфликт параллелизма для клиента {Id}", clientId);
                     return Result<Unit>.Failure(
                         "Данные были изменены другим пользователем. Обновите страницу."
                     );
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Ошибка при обновлении клиента {ClientId}", id);
+                    _logger.LogError(ex, "Ошибка при обновлении клиента {ClientId}", clientId);
                     return Result<Unit>.Failure("Системная ошибка при сохранении данных.");
                 }
             }

@@ -9,7 +9,7 @@ using Storage;
 
 namespace Application.Transactions
 {
-    public class List
+    public class GetList
     {
         public class Query : IRequest<Result<PagedList<TransactionDto>>>
         {
@@ -22,14 +22,14 @@ namespace Application.Transactions
             private readonly IMapper _mapper;
             private readonly ISearchExpressionBuilder _searchBuilder;
             private readonly IUserAccessor _userAccessor;
-            private readonly ILogger<List> _logger;
+            private readonly ILogger<GetList> _logger;
 
             public Handler(
                 DataContext context,
                 IMapper mapper,
                 ISearchExpressionBuilder searchBuilder,
                 IUserAccessor userAccessor,
-                ILogger<List> logger
+                ILogger<GetList> logger
             )
             {
                 _context = context;
@@ -64,7 +64,7 @@ namespace Application.Transactions
                         // Safely parsing or casting depending on how your Params are defined
                         if (int.TryParse(request.Params.ClientId.ToString(), out int clientId))
                         {
-                            query = query.Where(x => x.ClientId == clientId);
+                            query = query.Where(x => x.ClientId == request.Params.ClientId.Value);
                         }
                     }
 
@@ -72,7 +72,7 @@ namespace Application.Transactions
                     {
                         if (int.TryParse(request.Params.ServiceId.ToString(), out int serviceId))
                         {
-                            query = query.Where(x => x.ServiceId == serviceId);
+                            query = query.Where(x => x.ServiceId == request.Params.ServiceId);
                         }
                     }
 

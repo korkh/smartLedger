@@ -11,7 +11,7 @@ using Storage;
 
 namespace Application.Clients
 {
-    public class Create
+    public class CreateClient
     {
         public class Command : IRequest<Result<Unit>>
         {
@@ -31,9 +31,9 @@ namespace Application.Clients
         {
             private readonly DataContext _context;
             private readonly IMapper _mapper;
-            private readonly ILogger<Create> _logger; // Added logger
+            private readonly ILogger<CreateClient> _logger; // Added logger
 
-            public Handler(DataContext context, IMapper mapper, ILogger<Create> logger)
+            public Handler(DataContext context, IMapper mapper, ILogger<CreateClient> logger)
             {
                 _context = context;
                 _mapper = mapper;

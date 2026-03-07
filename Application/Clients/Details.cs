@@ -13,7 +13,7 @@ namespace Application.Clients
     {
         public class Query : IRequest<Result<ClientDto>>
         {
-            public int Id { get; set; }
+            public Guid Id { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, Result<ClientDto>>
@@ -51,10 +51,7 @@ namespace Application.Clients
                             _mapper.ConfigurationProvider,
                             new { currentUsername = _userAccessor.GetUserName() }
                         )
-                        .FirstOrDefaultAsync(
-                            x => x.ClientId == request.Id.ToString(),
-                            cancellationToken
-                        );
+                        .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
                     if (client == null)
                     {
