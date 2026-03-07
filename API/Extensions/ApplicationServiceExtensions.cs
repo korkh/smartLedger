@@ -2,6 +2,8 @@ using Application.Clients;
 using Application.Common.Configurations;
 using Application.Common.Interfaces;
 using Application.Core;
+using Application.Services;
+using Domain.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Infrastructure.Security;
@@ -53,9 +55,17 @@ namespace API.Extensions
             //     c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
             // });
 
+            var connectionString = config.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "Connection string 'DefaultConnection' not found."
+                );
+            }
+
             services.AddDbContext<DataContext>(options =>
             {
-                options.UseSqlite(config.GetConnectionString("DefaultConnection"));
+                options.UseSqlite(connectionString);
             });
 
             // POSTGRESQL
@@ -129,6 +139,8 @@ namespace API.Extensions
             // services.AddScoped<IPhotoAccessor, PhotoAccessor>();
             // services.AddScoped<EmailSender>();
             services.AddScoped<ISearchExpressionBuilder, SearchExpressionBuilder>();
+            services.AddScoped<ITaxService, TaxService>(); // Если у вас есть интерфейс и реализация
+            services.AddScoped<ClientAppService>(); // Сам сервис для Dashboard
             services.Configure<CloudinarySettings>(config.GetSection("Cloudinary"));
 
             return services;

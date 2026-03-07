@@ -1,6 +1,7 @@
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Storage
 {
@@ -13,6 +14,14 @@ namespace Storage
         public DbSet<ClientTariff> ClientTariffs { get; set; }
         public DbSet<Photo> Photos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            // Игнорируем проверку изменений модели при каждом запуске
+            optionsBuilder.ConfigureWarnings(w =>
+                w.Ignore(RelationalEventId.PendingModelChangesWarning)
+            );
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

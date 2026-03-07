@@ -10,7 +10,7 @@ namespace Application.Clients
     {
         public class Query : IRequest<Result<ClientDashboardDto>>
         {
-            public int Id { get; set; }
+            public Guid Id { get; set; }
             public int Year { get; set; } = DateTime.Now.Year;
             public int Month { get; set; } = DateTime.Now.Month;
         }

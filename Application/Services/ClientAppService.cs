@@ -17,7 +17,7 @@ namespace Application.Services
         }
 
         public async Task<ClientDashboardDto> GetDashboardDataAsync(
-            int clientId,
+            Guid clientId,
             int year,
             int month,
             string currentUserName

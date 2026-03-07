@@ -7,11 +7,16 @@ namespace Application.Common.Helpers.Validators
     {
         public ClientValidator()
         {
-            RuleFor(x => x.Name)
+            RuleFor(x => x.FirstName)
                 .NotEmpty()
                 .WithMessage("First name is required.")
                 .Length(1, 100)
                 .WithMessage("First name must be between 1 and 100 characters.");
+            RuleFor(x => x.LastName)
+                .NotEmpty()
+                .WithMessage("Last name is required.")
+                .Length(1, 100)
+                .WithMessage("Last name must be between 1 and 100 characters.");
 
             RuleFor(x => x.BinIin).Length(12).Matches("^[0-9]*$");
 

@@ -39,43 +39,31 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
-app.UseHttpsRedirection();
-
-var summaries = new[]
+else
 {
-    "Freezing",
-    "Bracing",
-    "Chilly",
-    "Cool",
-    "Mild",
-    "Warm",
-    "Balmy",
-    "Hot",
-    "Sweltering",
-    "Scorching",
-};
-
-app.MapGet(
-        "/weatherforecast",
-        () =>
+    app.Use(
+        async (context, next) =>
         {
-            var forecast = Enumerable
-                .Range(1, 5)
-                .Select(index => new WeatherForecast(
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-                .ToArray();
-            return forecast;
+            context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000"); // 1 year
+            // context.Response.Headers.Append("Permissions-Policy", "camera=(), microphone=()");
+            await next.Invoke();
         }
-    )
-    .WithName("GetWeatherForecast");
+    );
+}
+
+// 3. Routing & Auth
+app.UseCors("CorsPolicy");
+app.UseRequestLocalization(); // Теперь вызывается без параметров, т.к. они в сервисах
+app.UseAuthentication();
+app.UseAuthorization();
+
+// 4. Static files & Controllers
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.MapControllers();
+app.MapFallbackToController("Index", "Fallback");
+
+// Initialize Database (Migrations + Seed)
+await DbInitializer.InitDb(app);
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

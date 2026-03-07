@@ -11,10 +11,7 @@ namespace Application.Core
         {
             // 1. Client Mapping
             CreateMap<Client, ClientDto>()
-                .ForMember(dest => dest.ClientId, opt => opt.MapFrom(src => src.Id.ToString()))
                 .ReverseMap()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => int.Parse(src.ClientId)))
-                // Применяем условие для игнорирования null только при маппинге DTO -> Entity (Edit)
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             // 2. Transaction Mapping
@@ -28,6 +25,7 @@ namespace Application.Core
 
             // 3. Dashboard Mapping
             CreateMap<Client, ClientDashboardDto>()
+                // Guid мапится автоматически, если имена совпадают
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.FirstName))
                 .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName));
