@@ -7,6 +7,8 @@ namespace Domain.Constants
         {
             { 2023, 69000000m },
             { 2024, 73840000m },
+            { 2025, 78000000m },
+            { 2026, 82000000m },
         };
 
         // Default value if year is not found (20,000 MRP estimate)

@@ -11,7 +11,7 @@ using Storage;
 namespace Storage.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260310195537_InitialFull")]
+    [Migration("20260311161201_InitialFull")]
     partial class InitialFull
     {
         /// <inheritdoc />
@@ -99,6 +99,9 @@ namespace Storage.Migrations
 
                     b.Property<string>("TaxRiskLevel")
                         .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalDebt")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -235,21 +238,21 @@ namespace Storage.Migrations
                         new
                         {
                             Id = 1,
-                            ConcurrencyStamp = "5a81a457-8f17-490e-8eb6-0a842e9a8dd8",
+                            ConcurrencyStamp = "80047ced-0b99-4c9b-b7eb-740f77a1c00d",
                             Name = "Junior_Accountant",
                             NormalizedName = "JUNIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 2,
-                            ConcurrencyStamp = "31b3ac07-6141-4e34-87ef-d8eb9b252b64",
+                            ConcurrencyStamp = "251e0fe2-8d33-444a-92fc-ce896584c294",
                             Name = "Senior_Accountant",
                             NormalizedName = "SENIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 3,
-                            ConcurrencyStamp = "7cd1b337-d3d4-4e62-aaad-90044bcb179f",
+                            ConcurrencyStamp = "27147b9c-8179-461e-bfe5-010b70913f86",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });
@@ -316,6 +319,9 @@ namespace Storage.Migrations
                     b.Property<int>("ActualTimeMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("AnnualTaxReports")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("BillableTimeMinutes")
                         .HasColumnType("INTEGER");
 
@@ -350,17 +356,32 @@ namespace Storage.Migrations
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("MonthlyTaxReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("NdsBaseAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("OperationsCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("PerformerName")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("QuarterlyTaxReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SemiAnnualTaxReports")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ServiceType")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("StatReports")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
                         .HasColumnType("TEXT");

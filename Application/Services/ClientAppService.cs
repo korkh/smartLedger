@@ -1,3 +1,4 @@
+using Application.Clients;
 using Domain.Services;
 using Microsoft.EntityFrameworkCore;
 using Storage;
@@ -30,26 +31,38 @@ namespace Application.Services
             if (client == null)
                 return null;
 
-            // Используем ITaxService для всех расчетов
-            var stats = _taxService.GetTariffUsage(client, year, month);
+            bool isAllTime = year <= 0 || month <= 0;
 
-            // Для НДС нам нужно знать порог из констант
+            var stats = _taxService.GetTariffUsage(
+                client,
+                isAllTime ? DateTime.Now.Year : year,
+                isAllTime ? DateTime.Now.Month : month
+            );
+
+            // Фильтрация транзакций
+            var filteredTransactionsQuery = client.Transactions.Where(t => t.Status == "Completed");
+            if (!isAllTime)
+            {
+                filteredTransactionsQuery = filteredTransactionsQuery.Where(t =>
+                    t.Date.Year == year && t.Date.Month == month
+                );
+            }
+
+            var filteredTransactions = filteredTransactionsQuery.ToList();
+
+            // Расчет НДС
+            int ndsYear = isAllTime ? DateTime.Now.Year : year;
             decimal threshold = Domain.Constants.TaxConstants.NdsThresholds.TryGetValue(
-                year,
-                out var t
+                ndsYear,
+                out var tLimit
             )
-                ? t
+                ? tLimit
                 : Domain.Constants.TaxConstants.DefaultNdsThreshold;
 
-            var tasks = await _context
-                .Tasks.Where(t => t.ClientId == clientId && !t.IsCompleted)
-                .ToListAsync();
+            // Получаем задачи для счетчиков
+            var tasks = await _context.Tasks.Where(t => t.ClientId == clientId).ToListAsync();
 
-            var monthlyTransactions = client
-                .Transactions.Where(t =>
-                    t.Date.Year == year && t.Date.Month == month && t.Status == "Completed"
-                )
-                .ToList();
+            var now = DateTime.UtcNow;
 
             return new ClientDashboardDto
             {
@@ -58,60 +71,61 @@ namespace Application.Services
                 LastName = client.LastName,
                 TaxRegime = client.TaxRegime,
                 TaxRiskLevel = client.TaxRiskLevel,
-                // Прямой маппинг из сущности Client
                 PersonnelCount = client.EmployeesCount,
 
-                // Берем данные из ITaxService, чтобы логика была в одном месте
+                // --- ОПЕРАЦИИ ---
                 OperationsLimit =
                     (client.CurrentTariff?.OperationsLimit ?? 0)
                     + (client.CurrentTariff?.CarriedOverOperations ?? 0),
-                OperationsActual =
-                    (client.CurrentTariff?.OperationsLimit ?? 0)
-                    + (client.CurrentTariff?.CarriedOverOperations ?? 0)
-                    - stats.RemainingOperations,
+                OperationsActual = isAllTime
+                    ? client
+                        .Transactions.Where(t => t.Status == "Completed")
+                        .Sum(t => t.OperationsCount)
+                    : (client.CurrentTariff?.OperationsLimit ?? 0)
+                        + (client.CurrentTariff?.CarriedOverOperations ?? 0)
+                        - stats.RemainingOperations,
 
                 ConsultingMinutesLimit =
                     (client.CurrentTariff?.CommunicationMinutesLimit ?? 0)
                     + (client.CurrentTariff?.CarriedOverMinutes ?? 0),
-                ConsultingMinutesActual =
-                    (client.CurrentTariff?.CommunicationMinutesLimit ?? 0)
-                    + (client.CurrentTariff?.CarriedOverMinutes ?? 0)
-                    - stats.RemainingMinutes,
+                ConsultingMinutesActual = isAllTime
+                    ? client
+                        .Transactions.Where(t => t.Status == "Completed")
+                        .Sum(t => t.ActualTimeMinutes)
+                    : (client.CurrentTariff?.CommunicationMinutesLimit ?? 0)
+                        + (client.CurrentTariff?.CarriedOverMinutes ?? 0)
+                        - stats.RemainingMinutes,
 
-                // Отчетность по типам (ServiceType)
-                StatReportsCount = monthlyTransactions.Count(t => t.ServiceType == "Stat"),
-                MonthlyTaxReports = monthlyTransactions.Count(t => t.ServiceType == "TaxMonthly"),
-                QuarterlyTaxReports = monthlyTransactions.Count(t =>
+                // --- ОТЧЕТНОСТЬ (Наполняем данными из DTO) ---
+                StatReportsCount = filteredTransactions.Count(t => t.ServiceType == "Stat"),
+                MonthlyTaxReports = filteredTransactions.Count(t => t.ServiceType == "TaxMonthly"),
+                QuarterlyTaxReports = filteredTransactions.Count(t =>
                     t.ServiceType == "TaxQuarterly"
                 ),
-                SemiAnnualTaxReports = monthlyTransactions.Count(t =>
+                SemiAnnualTaxReports = filteredTransactions.Count(t =>
                     t.ServiceType == "TaxSemiAnnual"
-                ),
-                AnnualTaxReports = monthlyTransactions.Count(t => t.ServiceType == "TaxAnnual"),
+                ), // Добавлено
+                AnnualTaxReports = filteredTransactions.Count(t => t.ServiceType == "TaxAnnual"), // Добавлено
 
-                // Финансы
+                // --- ФИНАНСЫ ---
                 TariffAmount = client.CurrentTariff?.MonthlyFee ?? 0,
-                // Сумма доп. услуг, оказанных именно в этом месяце
-                MonthlyExtraServicesAmount = monthlyTransactions
+                MonthlyExtraServicesAmount = filteredTransactions
                     .Where(t => t.IsExtraService)
-                    .Sum(t => t.Amount),
-                // Берем актуальный долг из профиля клиента
+                    .Sum(t => t.ExtraServiceAmount),
                 TotalOutstandingDebt = client.TotalDebt,
 
-                // НДС (Лист "Справочник")
+                // --- НДС ---
                 NdsThreshold = threshold,
-                CurrentYearTurnover = threshold - _taxService.GetRemainingNdsLimit(client, year),
+                CurrentYearTurnover = threshold - _taxService.GetRemainingNdsLimit(client, ndsYear),
+                MonthlyTurnover = filteredTransactions.Sum(t => t.NdsBaseAmount), // Оборот за выбранный период
 
-                // Сроки и задачи
+                // --- СРОКИ И ЗАДАЧИ ---
                 EcpExpiryDate = client.EcpExpiryDate,
                 DaysUntilEcpExpires = client.EcpExpiryDate.HasValue
-                    ? Math.Max(
-                        0,
-                        (client.EcpExpiryDate.Value.ToUniversalTime() - DateTime.UtcNow).Days
-                    )
+                    ? Math.Max(0, (client.EcpExpiryDate.Value.ToUniversalTime() - now).Days)
                     : 0,
-                ActiveTasksCount = tasks.Count,
-                OverdueTasksCount = tasks.Count(t => t.Deadline < DateTime.UtcNow),
+                ActiveTasksCount = tasks.Count(t => !t.IsCompleted),
+                OverdueTasksCount = tasks.Count(t => !t.IsCompleted && t.Deadline < now),
             };
         }
     }

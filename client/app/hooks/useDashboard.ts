@@ -1,11 +1,18 @@
-// useDashboard.ts
-
 import { fetchWrapper } from "@/lib/fetchWrapper";
 import { DashboardData } from "@/Types";
 import { useEffect } from "react";
 import { useDashboardStore } from "./useDashboardStore";
 
-export const useDashboard = (clientId: string) => {
+// Создаем интерфейс для фильтров
+export interface DashboardFilters {
+  month?: number;
+  year?: number;
+  fromDate?: string;
+  toDate?: string;
+  periodType: "today" | "month" | "custom" | "all";
+}
+
+export const useDashboard = (clientId: string, filters: DashboardFilters) => {
   const { setDashboardData, setLoading } = useDashboardStore();
 
   useEffect(() => {
@@ -14,17 +21,30 @@ export const useDashboard = (clientId: string) => {
 
       setLoading(true);
       try {
-        // Явно указываем ожидаемый тип <DashboardData>
-        // Если fetchWrapper не поддерживает дженерики, используем "as"
-        const response = await fetchWrapper.get<DashboardData>(
-          `dashboard/${clientId}`,
-        );
+        // Формируем query-строку на основе фильтров
+        const params = new URLSearchParams();
 
-        // Проверяем, что response — это именно данные, а не объект с ошибкой
+        if (filters.periodType === "month") {
+          params.append("month", filters.month?.toString() || "");
+          params.append("year", filters.year?.toString() || "");
+        } else if (filters.periodType === "custom") {
+          params.append("fromDate", filters.fromDate || "");
+          params.append("toDate", filters.toDate || "");
+        } else if (filters.periodType === "today") {
+          const today = new Date().toISOString().split("T")[0];
+          params.append("fromDate", today);
+          params.append("toDate", today);
+        } else if (filters.periodType === "all") {
+          params.append("all", "true");
+        }
+
+        const queryString = params.toString();
+        const url = `dashboard/${clientId}${queryString ? `?${queryString}` : ""}`;
+
+        const response = await fetchWrapper.get<DashboardData>(url);
+
         if (response && !("error" in response)) {
           setDashboardData(response as DashboardData);
-        } else {
-          console.error("API Error:", response);
         }
       } catch (error) {
         console.error("Fetch error:", error);
@@ -34,5 +54,15 @@ export const useDashboard = (clientId: string) => {
     };
 
     fetchDashboard();
-  }, [clientId, setDashboardData, setLoading]);
+    // Хук перезапустится, если изменится ID клиента или любой из фильтров
+  }, [
+    clientId,
+    filters.periodType,
+    filters.month,
+    filters.year,
+    filters.fromDate,
+    filters.toDate,
+    setDashboardData,
+    setLoading,
+  ]);
 };

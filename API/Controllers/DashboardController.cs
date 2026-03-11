@@ -15,6 +15,7 @@ namespace API.Controllers
             _aiService = aiService;
         }
 
+        // 1. Быстрый метод — только цифры
         [HttpGet("{id}")]
         public async Task<IActionResult> GetClientDashboard(
             Guid id,
@@ -22,7 +23,6 @@ namespace API.Controllers
             [FromQuery] int? month
         )
         {
-            // 1. Получаем данные через MediatR
             var result = await Mediator.Send(
                 new Dashboard.Query
                 {
@@ -31,15 +31,30 @@ namespace API.Controllers
                     Month = month ?? DateTime.Now.Month,
                 }
             );
-
-            // 2. Если данные найдены, запрашиваем инсайт у ИИ
-            if (result.IsSuccess && result.Value != null)
-            {
-                // Передаем весь объект DTO в Ollama для анализа
-                result.Value.AiInsight = await _aiService.GetDashboardInsightAsync(result.Value);
-            }
-
             return HandleResult(result);
+        }
+
+        // 2. Метод для ИИ — вызывается по требованию
+        [HttpPost("{id}/analyze")]
+        public async Task<IActionResult> GetAiInsight(
+            Guid id,
+            [FromBody] ClientDashboardDto dashboardData
+        )
+        {
+            try
+            {
+                if (id != dashboardData.Id)
+                    return BadRequest("ID mismatch");
+
+                var insight = await _aiService.GetDashboardInsightAsync(dashboardData);
+                return Ok(new { insight });
+            }
+            catch (Exception ex)
+            {
+                // Это поможет тебе увидеть ошибку в консоли бэкенда
+                Console.WriteLine($"Error in AI Analysis: {ex}");
+                return StatusCode(500, "Internal Server error during AI analysis");
+            }
         }
     }
 }

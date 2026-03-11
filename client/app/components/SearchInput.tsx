@@ -18,9 +18,9 @@ export default function SearchInput() {
     params.set("pageNumber", "1"); // При поиске всегда возвращаемся на 1 страницу
 
     if (term) {
-      params.set("clients", term);
+      params.set("search", term);
     } else {
-      params.delete("clients");
+      params.delete("search");
     }
 
     // Обновляем Zustand для синхронизации (опционально)
@@ -37,7 +37,7 @@ export default function SearchInput() {
         type="text"
         icon={HiSearch}
         placeholder="Поиск клиента..."
-        defaultValue={searchParams.get("clients")?.toString()}
+        defaultValue={searchParams.get("search")?.toString()}
         onChange={(e) => handleSearch(e.target.value)}
       />
     </div>

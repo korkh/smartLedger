@@ -235,21 +235,21 @@ namespace Storage.Migrations
                         new
                         {
                             Id = 1,
-                            ConcurrencyStamp = "dd9a4753-c935-4cb3-b1d8-015a8b5edfb6",
+                            ConcurrencyStamp = "80047ced-0b99-4c9b-b7eb-740f77a1c00d",
                             Name = "Junior_Accountant",
                             NormalizedName = "JUNIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 2,
-                            ConcurrencyStamp = "1e88dcc4-c8ef-4ca2-9a7f-634edf426785",
+                            ConcurrencyStamp = "251e0fe2-8d33-444a-92fc-ce896584c294",
                             Name = "Senior_Accountant",
                             NormalizedName = "SENIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 3,
-                            ConcurrencyStamp = "3b84aafa-0e37-46ba-ac45-e77e5be4d5c0",
+                            ConcurrencyStamp = "27147b9c-8179-461e-bfe5-010b70913f86",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });
@@ -316,6 +316,9 @@ namespace Storage.Migrations
                     b.Property<int>("ActualTimeMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("AnnualTaxReports")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("BillableTimeMinutes")
                         .HasColumnType("INTEGER");
 
@@ -350,17 +353,32 @@ namespace Storage.Migrations
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("MonthlyTaxReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("NdsBaseAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("OperationsCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("PerformerName")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("QuarterlyTaxReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SemiAnnualTaxReports")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ServiceType")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("StatReports")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
                         .HasColumnType("TEXT");

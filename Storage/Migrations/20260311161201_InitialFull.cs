@@ -75,6 +75,7 @@ namespace Storage.Migrations
                     Oked = table.Column<string>(type: "TEXT", nullable: true),
                     EmployeesCount = table.Column<int>(type: "INTEGER", nullable: false),
                     EcpExpiryDate = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    TotalDebt = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ResponsiblePersonContact = table.Column<string>(type: "TEXT", nullable: true),
                     BankManagerContact = table.Column<string>(type: "TEXT", nullable: true),
                     ManagerNotes = table.Column<string>(type: "TEXT", nullable: true),
@@ -332,10 +333,16 @@ namespace Storage.Migrations
                     ActualTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     BillableTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     CommunicationTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
+                    StatReports = table.Column<int>(type: "INTEGER", nullable: true),
+                    MonthlyTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
+                    QuarterlyTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
+                    SemiAnnualTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
+                    AnnualTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
                     Status = table.Column<string>(type: "TEXT", nullable: true),
                     ServiceType = table.Column<string>(type: "TEXT", nullable: true),
                     IsExtraService = table.Column<bool>(type: "INTEGER", nullable: false),
                     ExtraServiceAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    NdsBaseAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
                     LastModifiedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
@@ -364,9 +371,9 @@ namespace Storage.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { 1, "5a81a457-8f17-490e-8eb6-0a842e9a8dd8", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
-                    { 2, "31b3ac07-6141-4e34-87ef-d8eb9b252b64", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
-                    { 3, "7cd1b337-d3d4-4e62-aaad-90044bcb179f", "Admin", "ADMIN" }
+                    { 1, "80047ced-0b99-4c9b-b7eb-740f77a1c00d", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
+                    { 2, "251e0fe2-8d33-444a-92fc-ce896584c294", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
+                    { 3, "27147b9c-8179-461e-bfe5-010b70913f86", "Admin", "ADMIN" }
                 });
 
             migrationBuilder.CreateIndex(

@@ -15,5 +15,10 @@ namespace Application.Transactions
         public int CommunicationTimeMinutes { get; set; }
         public string Status { get; set; }
         public decimal ExtraServiceAmount { get; set; }
+        public int StatReports { get; set; }
+        public int MonthlyTaxReports { get; set; }
+        public int QuarterlyTaxReports { get; set; }
+        public int SemiAnnualTaxReports { get; set; }
+        public int AnnualTaxReports { get; set; }
     }
 }

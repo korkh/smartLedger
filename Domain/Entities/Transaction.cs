@@ -32,6 +32,12 @@ namespace Domain.Entities
         public int CommunicationTimeMinutes { get; set; }
         public int ConsultingMinutes => CommunicationTimeMinutes;
 
+        public int? StatReports { get; set; }
+        public int? MonthlyTaxReports { get; set; }
+        public int? QuarterlyTaxReports { get; set; }
+        public int? SemiAnnualTaxReports { get; set; }
+        public int? AnnualTaxReports { get; set; }
+
         public string Status { get; set; } // e.g., "In Progress", "Completed"
 
         public string ServiceType { get; set; } // "Stat", "TaxMonthly" и т.д.
@@ -41,6 +47,7 @@ namespace Domain.Entities
         public decimal ExtraServiceAmount { get; set; }
 
         // Сумма для расчетов (если это доп. услуга)
-        public decimal Amount => ExtraServiceAmount;
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal NdsBaseAmount { get; set; }
     }
 }

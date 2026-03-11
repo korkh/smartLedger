@@ -1,46 +1,61 @@
 "use client";
 
 import AiInsightCard from "@/app/components/dashboard/AiInsightCard";
-import { useDashboard } from "@/app/hooks/useDashboard";
+import DateFilter from "@/app/components/DateFilter";
+import { DashboardFilters, useDashboard } from "@/app/hooks/useDashboard";
 import { useDashboardStore } from "@/app/hooks/useDashboardStore";
 import { Badge, Card, Progress, Tooltip } from "flowbite-react";
-import { use } from "react";
+import { use, useState } from "react";
 import {
   HiClock,
   HiCurrencyDollar,
-  HiDocumentText,
   HiExclamationCircle,
   HiIdentification,
+  HiTrendingUp,
+  HiUsers,
 } from "react-icons/hi";
 
-/**
- * Основная страница аналитики клиента.
- * Включает финансовые показатели, лимиты операций и статус комлпаенса.
- */
 export default function DashboardPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  useDashboard(id);
+
+  const [filters, setFilters] = useState<DashboardFilters>({
+    periodType: "month",
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+  });
+
+  useDashboard(id, filters);
+
+  const handlePeriodChange = (newFilters: DashboardFilters) => {
+    setFilters(newFilters);
+  };
+
   const { data, isLoading } = useDashboardStore();
+
+  console.log(data);
 
   if (isLoading)
     return (
-      <div className="flex justify-center p-10">Загрузка аналитики...</div>
+      <div className="flex justify-center p-10 text-gray-500">
+        Загрузка аналитики...
+      </div>
     );
-  if (!data) return <div className="p-6 text-red-500">Данные не найдены</div>;
+  if (!data)
+    return (
+      <div className="p-6 text-red-500 text-center">Данные не найдены</div>
+    );
 
-  // Расчет цвета для ЭЦП (предупреждение за 30 дней)
+  // Логика цвета для ЭЦП
   const ecpColor =
     data.daysUntilEcpExpires < 14
       ? "failure"
       : data.daysUntilEcpExpires < 30
         ? "warning"
         : "success";
-
-  console.log(data);
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -50,8 +65,8 @@ export default function DashboardPage({
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
             {data.firstName} {data.lastName}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Режим: {data.taxRegime}
+          <p className="text-gray-500 dark:text-gray-400 font-medium">
+            Режим: <span className="text-blue-600">{data.taxRegime}</span>
           </p>
         </div>
         <div className="flex gap-2">
@@ -67,46 +82,59 @@ export default function DashboardPage({
         </div>
       </div>
 
+      <div className="flex justify-between items-center">
+        <DateFilter filters={filters} onPeriodChange={handlePeriodChange} />
+      </div>
+
       {/* AI Аналитика */}
       <AiInsightCard />
 
-      {/* Финансовый блок и Хвосты */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-linear-to-br from-blue-50 to-white">
+      {/* Финансовый блок: Тариф, Хвосты, Долг */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-white border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
-            <h5 className="text-sm font-medium text-gray-500 uppercase">
-              К оплате (Тариф)
+            <h5 className="text-xs font-bold text-gray-400 uppercase">
+              Тариф за месяц
             </h5>
-            <HiCurrencyDollar className="text-blue-500 text-2xl" />
+            <HiCurrencyDollar className="text-blue-500 text-xl" />
           </div>
-          <div className="mt-2 text-2xl font-bold">
+          <div className="mt-1 text-2xl font-black text-gray-900">
             {data.tariffAmount.toLocaleString()} ₸
           </div>
         </Card>
 
-        <Card className="bg-linear-to-br from-orange-50 to-white">
+        <Card className="bg-white border-l-4 border-orange-400">
           <div className="flex items-center justify-between">
-            <h5 className="text-sm font-medium text-gray-500 uppercase">
+            <h5 className="text-xs font-bold text-gray-400 uppercase">
               Доп. услуги (Хвосты)
             </h5>
-            <HiExclamationCircle className="text-orange-500 text-2xl" />
+            <HiTrendingUp className="text-orange-400 text-xl" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-orange-600">
+          <div className="mt-1 text-2xl font-black text-orange-600">
             +{(data.monthlyExtraServicesAmount ?? 0).toLocaleString()} ₸
           </div>
-          <p className="text-xs text-gray-400">
-            Начислено сверх пакета в текущем месяце
-          </p>
         </Card>
 
-        <Card className="bg-linear-to-br from-red-50 to-white border-red-100">
+        <Card className="bg-slate-50 border-l-4 border-gray-800">
           <div className="flex items-center justify-between">
-            <h5 className="text-sm font-medium text-gray-500 uppercase">
-              Итого к оплате
+            <h5 className="text-xs font-bold text-gray-400 uppercase">
+              Общая задолженность
             </h5>
-            <HiIdentification className="text-red-500 text-2xl" />
+            <HiExclamationCircle className="text-gray-700 text-xl" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-red-700">
+          <div className="mt-1 text-2xl font-black text-gray-800">
+            {data.totalOutstandingDebt.toLocaleString()} ₸
+          </div>
+        </Card>
+
+        <Card className="bg-red-50 border-l-4 border-red-600">
+          <div className="flex items-center justify-between">
+            <h5 className="text-xs font-bold text-red-400 uppercase">
+              Итого к оплате (Месяц)
+            </h5>
+            <HiIdentification className="text-red-600 text-xl" />
+          </div>
+          <div className="mt-1 text-2xl font-black text-red-700">
             {(data.totalToPay ?? 0).toLocaleString()} ₸
           </div>
         </Card>
@@ -116,85 +144,117 @@ export default function DashboardPage({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <div className="flex justify-between items-center mb-4">
-            <h5 className="text-lg font-bold">Порог НДС (30 000 МРП)</h5>
-            <Tooltip content="Следите за оборотом, чтобы вовремя встать на учет по НДС">
+            <div>
+              <h5 className="text-lg font-bold">Оборот по НДС</h5>
+              <p className="text-xs text-gray-400">
+                Нарастающим итогом за {filters.year} год
+              </p>
+            </div>
+            <Tooltip
+              content={`Порог НДС: ${data.ndsThreshold.toLocaleString()} ₸`}
+            >
               <HiExclamationCircle className="text-gray-400 cursor-help" />
             </Tooltip>
           </div>
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium">
-              {data.currentYearTurnover.toLocaleString()} / 30 000 МРП
+
+          <div className="flex justify-between mb-2 items-end">
+            <span className="text-sm font-bold text-gray-700">
+              {data.currentYearTurnover.toLocaleString()} ₸
             </span>
-            <span className="text-sm font-medium">
-              {data.ndsProgressPercentage.toFixed(1)}%
+            <span className="text-sm font-black text-blue-700">
+              {data.ndsProgressPercentage?.toFixed(1) ?? "0.0"}%
             </span>
           </div>
+
           <Progress
-            progress={data.ndsProgressPercentage}
+            progress={data.ndsProgressPercentage || 0}
             color={data.ndsProgressPercentage > 85 ? "red" : "blue"}
             size="lg"
           />
+
+          <div className="mt-2 flex justify-between text-[10px] text-gray-400 uppercase font-bold">
+            <span>0 ₸</span>
+            <span>Порог: {data.ndsThreshold.toLocaleString()} ₸</span>
+          </div>
         </Card>
 
         <Card>
-          <h5 className="text-lg font-bold mb-4">Лимит операций по тарифу</h5>
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium">
-              Использовано: {data.operationsActual} из {data.operationsLimit}
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h5 className="text-lg font-bold">Лимит операций</h5>
+              <p className="text-xs text-gray-400">
+                Включено в пакет + перенос
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-between mb-2 items-end">
+            <span className="text-sm font-bold text-gray-700">
+              Факт: {data.operationsActual} / {data.operationsLimit}
             </span>
-            <span className="text-sm font-medium">
-              {Math.round((data.operationsActual / data.operationsLimit) * 100)}
-              %
+            <span
+              className={`text-sm font-black ${data.operationsRemaining < 0 ? "text-red-600" : "text-green-600"}`}
+            >
+              Остаток: {data.operationsRemaining}
             </span>
           </div>
           <Progress
-            progress={(data.operationsActual / data.operationsLimit) * 100}
+            progress={Math.min(
+              100,
+              (data.operationsActual / data.operationsLimit) * 100,
+            )}
             color={
               data.operationsActual > data.operationsLimit ? "red" : "yellow"
             }
             size="lg"
           />
           {data.operationsRemaining < 0 && (
-            <p className="mt-2 text-xs text-red-600 font-semibold">
-              Превышение на {Math.abs(data.operationsRemaining)} операций
+            <p className="mt-2 text-xs text-red-600 font-bold flex items-center gap-1">
+              <HiExclamationCircle /> Сверх лимита:{" "}
+              {Math.abs(data.operationsRemaining)} оп.
             </p>
           )}
         </Card>
       </div>
 
-      {/* Статистика по отчетам и кадрам */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Блок отчетности и задач */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <ReportMetric label="Стат. отчеты" value={data.statReportsCount} />
         <ReportMetric label="Налоговые (мес)" value={data.monthlyTaxReports} />
         <ReportMetric label="Налоговые (кв)" value={data.quarterlyTaxReports} />
         <ReportMetric
+          label="Налоговые (полугод)"
+          value={data.semiAnnualTaxReports}
+        />
+        <ReportMetric label="Налоговые (год)" value={data.annualTaxReports} />
+        <ReportMetric
           label="Сотрудники"
           value={data.personnelCount}
-          icon={<HiDocumentText />}
+          icon={<HiUsers />}
         />
       </div>
     </div>
   );
 }
 
-/**
- * Вспомогательный компонент для мини-метрик
- */
 function ReportMetric({
   label,
   value,
   icon,
+  highlight = false,
 }: {
   label: string;
   value: number;
   icon?: React.ReactNode;
+  highlight?: boolean;
 }) {
   return (
-    <Card className="flex flex-col items-center justify-center p-2 text-center">
-      <div className="text-gray-500 text-xs mb-1 uppercase tracking-wider font-semibold">
+    <Card
+      className={`flex flex-col items-center justify-center p-2 text-center ${highlight ? "bg-orange-50 border-orange-100" : ""}`}
+    >
+      <div className="text-gray-400 text-[10px] mb-1 uppercase tracking-tighter font-black">
         {label}
       </div>
-      <div className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+      <div className="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-2">
         {icon} {value}
       </div>
     </Card>
