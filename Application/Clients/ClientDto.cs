@@ -26,6 +26,11 @@ namespace Application.Clients
         // Лист "Клиенты", колонка "Степень налогового риска"
         public string TaxRiskLevel { get; set; }
 
+        public DateTime? EcpExpiryDate { get; set; }
+
+        // Количество дней до истечения (заполняется в DashboardService)
+        public int? DaysUntilEcpExpires { get; set; }
+
         // --- УРОВЕНЬ 2 (Менеджерский доступ) ---
 
         // Лист "Клиенты", колонка "Контакты ответственного лица клиента"

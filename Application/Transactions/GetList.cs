@@ -1,7 +1,7 @@
-using Application.Common.Interfaces;
 using Application.Core;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Domain.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -61,19 +61,12 @@ namespace Application.Transactions
                     // 2. Entity Level Filters (Handling Guid? to int conversion if necessary)
                     if (request.Params.ClientId.HasValue)
                     {
-                        // Safely parsing or casting depending on how your Params are defined
-                        if (int.TryParse(request.Params.ClientId.ToString(), out int clientId))
-                        {
-                            query = query.Where(x => x.ClientId == request.Params.ClientId.Value);
-                        }
+                        query = query.Where(x => x.ClientId == request.Params.ClientId.Value);
                     }
 
                     if (request.Params.ServiceId.HasValue)
                     {
-                        if (int.TryParse(request.Params.ServiceId.ToString(), out int serviceId))
-                        {
-                            query = query.Where(x => x.ServiceId == request.Params.ServiceId);
-                        }
+                        query = query.Where(x => x.ServiceId == request.Params.ServiceId.Value);
                     }
 
                     if (request.Params.StartDate.HasValue)
@@ -124,13 +117,9 @@ namespace Application.Transactions
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(
-                        ex,
-                        "Error occurred while fetching transactions for user {User}",
-                        userName
-                    );
+                    _logger.LogError(ex, "Error fetching transactions for {User}", userName);
                     return Result<PagedList<TransactionDto>>.Failure(
-                        "An error occurred while loading the transaction journal."
+                        "Ошибка при загрузке журнала транзакций."
                     );
                 }
             }

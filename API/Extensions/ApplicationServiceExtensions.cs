@@ -1,11 +1,13 @@
+using API.Services;
 using Application.Clients;
 using Application.Common.Configurations;
-using Application.Common.Interfaces;
 using Application.Core;
 using Application.Services;
+using Domain.Interfaces;
 using Domain.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Infrastructure.Email;
 using Infrastructure.Security;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -141,7 +143,10 @@ namespace API.Extensions
             services.AddScoped<ISearchExpressionBuilder, SearchExpressionBuilder>();
             services.AddScoped<ITaxService, TaxService>(); // Если у вас есть интерфейс и реализация
             services.AddScoped<ClientAppService>(); // Сам сервис для Dashboard
+            services.AddHttpClient<IaiAnalysisService, AiAnalysisService>();
             services.Configure<CloudinarySettings>(config.GetSection("Cloudinary"));
+
+            services.AddScoped<EmailSender>();
 
             return services;
         }

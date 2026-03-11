@@ -1,11 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Entities.Common;
 
 namespace Domain.Entities
 {
-    public class Client
+    public class Client : BaseEntity
     {
         [Key]
-        public Guid Id { get; set; } // Matches int key in IdentityDbContext
+        public Guid Id { get; set; }
 
         // --- LEVEL 1 (Basic Information) ---
 
@@ -27,6 +29,14 @@ namespace Domain.Entities
         public string NdsStatus { get; set; } // Taxpayer or non-taxpayer
 
         public string TaxRiskLevel { get; set; } // Low, Medium, High risk
+
+        public string Oked { get; set; } // ОКЭД из листа "Клиенты"
+        public int EmployeesCount { get; set; } // Из листа "Отчет для клиента"
+        public DateTime? EcpExpiryDate { get; set; } // Срок действия ЭЦП
+
+        // Общая сумма задолженности по всем неоплаченным счетам/хвостам
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalDebt { get; set; }
 
         // --- LEVEL 2 (Manager Access) ---
 

@@ -1,6 +1,6 @@
-using Application.Common.Interfaces; // Для IUserAccessor
 using Application.Core;
 using Application.Services;
+using Domain.Interfaces; // Для IUserAccessor
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -15,22 +15,15 @@ namespace Application.Clients
             public int Month { get; set; } = DateTime.Now.Month;
         }
 
-        public class Handler : IRequestHandler<Query, Result<ClientDashboardDto>>
+        public class Handler(
+            ClientAppService dashboardService,
+            ILogger<Dashboard> logger,
+            IUserAccessor userAccessor
+        ) : IRequestHandler<Query, Result<ClientDashboardDto>>
         {
-            private readonly ClientAppService _dashboardService;
-            private readonly ILogger<Dashboard> _logger;
-            private readonly IUserAccessor _userAccessor;
-
-            public Handler(
-                ClientAppService dashboardService,
-                ILogger<Dashboard> logger,
-                IUserAccessor userAccessor
-            )
-            {
-                _dashboardService = dashboardService;
-                _logger = logger;
-                _userAccessor = userAccessor;
-            }
+            private readonly ClientAppService _dashboardService = dashboardService;
+            private readonly ILogger<Dashboard> _logger = logger;
+            private readonly IUserAccessor _userAccessor = userAccessor;
 
             public async Task<Result<ClientDashboardDto>> Handle(
                 Query request,
@@ -38,10 +31,13 @@ namespace Application.Clients
             )
             {
                 var currentUserName = _userAccessor.GetUserName();
+                // Проверяем, есть ли у пользователя роль Admin в токене
+                var isAdmin = _userAccessor.IsAdmin();
 
                 _logger.LogInformation(
-                    "Пользователь {User} запрашивает Dashboard клиента {Id}",
+                    "Пользователь {User} (Admin: {IsAdmin}) запрашивает Dashboard клиента {Id}",
                     currentUserName,
+                    isAdmin,
                     request.Id
                 );
 
@@ -52,7 +48,8 @@ namespace Application.Clients
                         request.Id,
                         request.Year,
                         request.Month,
-                        currentUserName // Передаем владельца
+                        currentUserName,
+                        isAdmin
                     );
 
                     if (data == null)
@@ -62,7 +59,8 @@ namespace Application.Clients
                             request.Id,
                             currentUserName
                         );
-                        return null;
+                        // Возвращаем пустой успех, чтобы HandleResult выдал NotFound
+                        return Result<ClientDashboardDto>.Success(null);
                     }
 
                     return Result<ClientDashboardDto>.Success(data);

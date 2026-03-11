@@ -61,7 +61,8 @@ app.UseAuthorization();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapControllers();
-app.MapFallbackToController("Index", "Fallback");
+
+// app.MapFallbackToController("Index", "Fallback");
 
 // Initialize Database (Migrations + Seed)
 await DbInitializer.InitDb(app);

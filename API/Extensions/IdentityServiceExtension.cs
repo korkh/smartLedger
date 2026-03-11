@@ -29,7 +29,7 @@ namespace API.Extensions
                 .AddDefaultTokenProviders();
 
             var key = new SymmetricSecurityKey(
-                System.Text.Encoding.UTF8.GetBytes(config["TokenKey"])
+                System.Text.Encoding.UTF8.GetBytes(config["JWTSettings:TokenKey"])
             );
 
             /**

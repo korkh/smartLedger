@@ -1,7 +1,7 @@
-using Application.Common.Interfaces;
 using Application.Core;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Domain.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging; // Added for logging

@@ -8,7 +8,7 @@ namespace Storage
     {
         public static async Task SeedData(DataContext context, UserManager<User> userManager)
         {
-            // 1. Create Users (Managers) - без изменений
+            // 1. Users (Identity)
             if (!userManager.Users.Any())
             {
                 var users = new List<User>
@@ -18,249 +18,221 @@ namespace Storage
                         FirstName = "Igor",
                         LastName = "Junior",
                         UserName = "igor",
+                        DisplayedName = "Игорь",
                         Email = "igor@test.com",
-                        Position = "Junior Accountant",
                     },
                     new User
                     {
                         FirstName = "Anna",
                         LastName = "Accountant",
                         UserName = "anna",
+                        DisplayedName = "Анна",
                         Email = "anna@test.com",
-                        Position = "Senior Accountant",
                     },
                     new User
                     {
                         FirstName = "Admin",
                         LastName = "System",
                         UserName = "admin",
+                        DisplayedName = "Администратор",
                         Email = "admin@test.com",
-                        Position = "Administrator",
                     },
                 };
 
                 foreach (var user in users)
                 {
                     await userManager.CreateAsync(user, "Pa$$w0rd");
-                    if (user.UserName == "admin")
-                        await userManager.AddToRoleAsync(user, "Admin");
-                    else if (user.UserName == "anna")
-                        await userManager.AddToRoleAsync(user, "Senior_Accountant");
-                    else
-                        await userManager.AddToRoleAsync(user, "Junior_Accountant");
+                    await userManager.AddToRoleAsync(
+                        user,
+                        user.UserName == "admin"
+                            ? "Admin"
+                            : (user.UserName == "anna" ? "Senior_Accountant" : "Junior_Accountant")
+                    );
                 }
             }
 
-            // 2. Service Directory - без изменений
+            // 2. Service Reference (Based on your Excel "Справочник")
             if (!context.ServiceReferences.Any())
             {
-                var services = new List<ServiceReference>
+                var serviceRefs = new List<ServiceReference>
                 {
                     new ServiceReference
                     {
-                        Name = "Consultation",
+                        Name = "СНТ (Сопроводительная накладная)",
                         BasePrice = 5000,
-                        AffectsNdsThreshold = false,
-                        StandardTimeMinutes = 30,
-                    },
-                    new ServiceReference
-                    {
-                        Name = "Tax Filing",
-                        BasePrice = 15000,
                         AffectsNdsThreshold = true,
-                        StandardTimeMinutes = 120,
+                        CreatedBy = "Seed",
                     },
                     new ServiceReference
                     {
-                        Name = "Bookkeeping",
+                        Name = "ЭАВР (Акт выполненных работ)",
+                        BasePrice = 3000,
+                        AffectsNdsThreshold = true,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "Приём на работу сотрудника",
+                        BasePrice = 7000,
+                        AffectsNdsThreshold = false,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "Разноска выписки банка (Каспи/БЦК)",
+                        BasePrice = 10000,
+                        AffectsNdsThreshold = false,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "910.00 Упрощенная декларация",
                         BasePrice = 25000,
                         AffectsNdsThreshold = true,
-                        StandardTimeMinutes = 480,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "100.00 Декларация по КПН",
+                        BasePrice = 55000,
+                        AffectsNdsThreshold = true,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "Стат отчет 1-Т",
+                        BasePrice = 8000,
+                        AffectsNdsThreshold = false,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "Регистрация в ИС ЭСФ",
+                        BasePrice = 15000,
+                        AffectsNdsThreshold = false,
+                        CreatedBy = "Seed",
                     },
                 };
-                context.ServiceReferences.AddRange(services);
+                context.ServiceReferences.AddRange(serviceRefs);
                 await context.SaveChangesAsync();
             }
 
-            // 3. Create Specific Clients from Excel data
+            // 3. Clients Generation (30 clients)
             if (!context.Clients.Any())
             {
-                var serviceList = await context.ServiceReferences.ToListAsync();
+                var services = await context.ServiceReferences.ToListAsync();
+                var allUsers = await userManager.Users.ToListAsync();
+                var random = new Random();
 
-                // Данные на основе вашего списка паролей и структуры Excel
-                var clientData = new List<Client>
+                string[] companyNames =
                 {
-                    new Client
-                    {
-                        FirstName = "Sirius",
-                        LastName = "Logistics TOO",
-                        BinIin = "880512300123",
-                        TaxRegime = "ОУР",
-                        NdsStatus = "Taxpayer",
-                        TaxRiskLevel = "Low",
-                        EcpPassword = "Sirius777",
-                        EsfPassword = "Sirius77",
-                        BankingPasswords = "Almaty2023!",
-                        Address = "Almaty, Dostyk 12",
-                        ResponsiblePersonContact = "anna",
-                    },
-                    new Client
-                    {
-                        FirstName = "Artur",
-                        LastName = "IP",
-                        BinIin = "920101400567",
-                        TaxRegime = "УР",
-                        NdsStatus = "Non-taxpayer",
-                        TaxRiskLevel = "Medium",
-                        EcpPassword = "Artur@2024",
-                        EsfPassword = "UdSuCw736x",
-                        BankingPasswords = "Aa123456-",
-                        Address = "Astana, Mangilik El 5",
-                        ResponsiblePersonContact = "igor",
-                    },
-                    new Client
-                    {
-                        FirstName = "Edelveis",
-                        LastName = "Trade",
-                        BinIin = "150640012345",
-                        TaxRegime = "ОУР",
-                        NdsStatus = "Taxpayer",
-                        TaxRiskLevel = "High",
-                        EcpPassword = "Edelveis__007",
-                        EsfPassword = "QazTrade*2030",
-                        BankingPasswords = "Aa1234IP",
-                        Address = "Karaganda, Bukhar-Zhyrau 45",
-                        ResponsiblePersonContact = "anna",
-                    },
-                    new Client
-                    {
-                        FirstName = "Kontik",
-                        LastName = "Kazakhstan",
-                        BinIin = "100240055667",
-                        TaxRegime = "УР",
-                        NdsStatus = "Taxpayer",
-                        TaxRiskLevel = "Low",
-                        EcpPassword = "Kontikazakhstan2024",
-                        EsfPassword = "Almaty2023!",
-                        BankingPasswords = "Aa12345688",
-                        Address = "Almaty, Rozybakieva 100",
-                        ResponsiblePersonContact = "anna",
-                    },
-                    new Client
-                    {
-                        FirstName = "Amirzhan",
-                        LastName = "Sultanov IP",
-                        BinIin = "850303300111",
-                        TaxRegime = "УР",
-                        NdsStatus = "Non-taxpayer",
-                        TaxRiskLevel = "Low",
-                        EcpPassword = "Amirzhan2012",
-                        EsfPassword = "Aa123456",
-                        BankingPasswords = "Abzal2014",
-                        Address = "Shymkent, Kunayev 12",
-                        ResponsiblePersonContact = "igor",
-                    },
-                    new Client
-                    {
-                        FirstName = "Fedorova",
-                        LastName = "Consulting",
-                        BinIin = "780909400222",
-                        TaxRegime = "ОУР",
-                        NdsStatus = "Non-taxpayer",
-                        TaxRiskLevel = "Medium",
-                        EcpPassword = "Fedorova888",
-                        EsfPassword = "Fedorova888",
-                        BankingPasswords = "Аа1234",
-                        Address = "Almaty, Abaya 52",
-                        ResponsiblePersonContact = "anna",
-                    },
-                    new Client
-                    {
-                        FirstName = "Shynar",
-                        LastName = "Beauty TOO",
-                        BinIin = "200140088990",
-                        TaxRegime = "УР",
-                        NdsStatus = "Taxpayer",
-                        TaxRiskLevel = "Low",
-                        EcpPassword = "Shyn-ar1234@",
-                        EsfPassword = "Аа1234",
-                        BankingPasswords = "Sirius77",
-                        Address = "Aktau, 12-25",
-                        ResponsiblePersonContact = "igor",
-                    },
-                    new Client
-                    {
-                        FirstName = "Keruen",
-                        LastName = "Group",
-                        BinIin = "180540011223",
-                        TaxRegime = "ОУР",
-                        NdsStatus = "Taxpayer",
-                        TaxRiskLevel = "Low",
-                        EcpPassword = "Keruen$Ada25!",
-                        EsfPassword = "AdaNagima25",
-                        BankingPasswords = "Aa1234",
-                        Address = "Astana, Turan 18",
-                        ResponsiblePersonContact = "anna",
-                    },
-                    new Client
-                    {
-                        FirstName = "Diaservice",
-                        LastName = "TOO",
-                        BinIin = "120819780123",
-                        TaxRegime = "ОУР",
-                        NdsStatus = "Taxpayer",
-                        TaxRiskLevel = "High",
-                        EcpPassword = "Diaservice2020",
-                        EsfPassword = "Vv12081978",
-                        BankingPasswords = "Asd123123",
-                        Address = "Atyrau, Satpayeva 2",
-                        ResponsiblePersonContact = "anna",
-                    },
-                    new Client
-                    {
-                        FirstName = "Ainura",
-                        LastName = "Sadykova IP",
-                        BinIin = "820505400987",
-                        TaxRegime = "УР",
-                        NdsStatus = "Non-taxpayer",
-                        TaxRiskLevel = "Low",
-                        EcpPassword = "Ainura2022",
-                        EsfPassword = "Aa1234",
-                        BankingPasswords = "Ainura2022",
-                        Address = "Almaty, Sain 15",
-                        ResponsiblePersonContact = "igor",
-                    },
+                    "Alash Provision",
+                    "Business Networking",
+                    "Ainalayin",
+                    "Buratino & Co",
+                    "Zharyk NRG",
+                    "Alpha Group",
+                    "KazRefTrans",
+                    "Impec Finance",
+                    "Green Valley",
+                    "Nomad Logistics",
                 };
+                string[] regimes = { "ОУР", "Упрощенка", "Розничный налог" };
+                string[] riskLevels = { "Low", "Medium", "High" };
 
-                foreach (var client in clientData)
+                for (int i = 1; i <= 30; i++)
                 {
-                    // Добавляем тариф
-                    client.CurrentTariff = new ClientTariff
+                    var responsibleUser = allUsers[random.Next(allUsers.Count)];
+                    var regime = regimes[random.Next(regimes.Length)];
+                    var companyName = companyNames[random.Next(companyNames.Length)] + " " + i;
+                    // Генерируем случайный долг для Dashboard ("Хвосты")
+                    decimal initialDebt = i % 4 == 0 ? random.Next(5000, 50000) : 0;
+
+                    var client = new Client
                     {
-                        MonthlyFee = 35000,
-                        OperationsLimit = 100,
-                        CommunicationMinutesLimit = 200,
-                        ContractDate = DateTime.UtcNow.AddMonths(-2),
-                        IsActive = true,
+                        FirstName = companyName,
+                        LastName = i % 3 == 0 ? "ТОО" : "ИП",
+                        BinIin = (100000000000 + random.NextInt64(899999999999)).ToString(), // Random 12 digits
+                        Address = $"г. Алматы, Район {random.Next(1, 8)}, дом {i}",
+                        TaxRegime = regime,
+                        NdsStatus = i % 5 == 0 ? "Плательщик НДС" : "Не плательщик",
+                        TaxRiskLevel = riskLevels[random.Next(riskLevels.Length)],
+                        Oked = random.Next(10000, 99999).ToString(),
+                        EmployeesCount = random.Next(1, 50),
+                        EcpExpiryDate = DateTime.UtcNow.AddDays(random.Next(10, 300)),
+                        ResponsiblePersonContact = responsibleUser.UserName,
+                        TotalDebt = initialDebt,
+                        BankManagerContact =
+                            "+7 707 "
+                            + random.Next(100, 999)
+                            + " "
+                            + random.Next(10, 99)
+                            + " "
+                            + random.Next(10, 99),
+                        EcpPassword = "EcpPassword" + i,
+                        EsfPassword = "EsfSecret" + i,
+                        BankingPasswords = "BankAuth" + i,
+                        ManagerNotes = "Auto-generated seed client",
+                        CreatedBy = "Seed",
+                        CreatedAt = DateTime.UtcNow,
+
+                        CurrentTariff = new ClientTariff
+                        {
+                            MonthlyFee = regime == "ОУР" ? 250000 : 75000,
+                            OperationsLimit = regime == "ОУР" ? 1000 : 200,
+                            CommunicationMinutesLimit = 300,
+                            ContractDate = DateTime.UtcNow.AddMonths(-random.Next(1, 12)),
+                            IsActive = true,
+                            CreatedBy = "Seed",
+                            CreatedAt = DateTime.UtcNow,
+                        },
                     };
 
-                    // Добавляем тестовые транзакции
-                    var service = serviceList[0];
-                    client.Transactions.Add(
-                        new Transaction
-                        {
-                            Date = DateTime.UtcNow.AddDays(-5),
-                            OperationsCount = 2,
-                            ActualTimeMinutes = 60,
-                            Status = "Completed",
-                            ServiceId = service.Id,
-                            PerformerName = client.ResponsiblePersonContact,
-                        }
-                    );
+                    // Add Transactions for each client
+                    for (int t = 0; t < 5; t++)
+                    {
+                        var srv = services[random.Next(services.Count)];
+                        bool isExtra = srv.IsExtraService || t > 5; // Делаем часть услуг разовыми
+                        decimal extraAmount = isExtra ? srv.BasePrice : 0;
+                        client.Transactions.Add(
+                            new Transaction
+                            {
+                                Date = DateTime.UtcNow.AddDays(-random.Next(0, 28)), // Текущий месяц для Dashboard
+                                ServiceId = srv.Id,
+                                ServiceType = srv.ServiceType,
+                                IsExtraService = isExtra,
+                                ExtraServiceAmount = extraAmount,
+                                OperationsCount = 1,
+                                ActualTimeMinutes = random.Next(10, 60),
+                                CommunicationTimeMinutes = random.Next(0, 15),
+                                Status = "Completed",
+                                PerformerName = responsibleUser.DisplayedName,
+                                CreatedBy = "Seed",
+                                CreatedAt = DateTime.UtcNow,
+                            }
+                        );
+                    }
 
                     context.Clients.Add(client);
                 }
+                await context.SaveChangesAsync();
 
+                // 4. Tasks for random clients
+                var someClients = await context.Clients.Take(10).ToListAsync();
+                foreach (var c in someClients)
+                {
+                    context.Tasks.Add(
+                        new UserTask
+                        {
+                            Title = $"Проверить оплату хвостов {c.FirstName}",
+                            Deadline = DateTime.UtcNow.AddDays(random.Next(-2, 5)),
+                            IsCompleted = false,
+                            ClientId = c.Id,
+                            CreatedBy = "Seed",
+                            CreatedAt = DateTime.UtcNow,
+                        }
+                    );
+                }
                 await context.SaveChangesAsync();
             }
         }

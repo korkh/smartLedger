@@ -19,7 +19,7 @@ namespace API.Services
             _userManager = userManager;
         }
 
-        public string CreateToken(User user)
+        public async Task<string> CreateToken(User user)
         {
             var claims = new List<Claim>
             {
@@ -29,13 +29,15 @@ namespace API.Services
             };
 
             // Retrieve roles for the user and add each as a role claim
-            var roles = _userManager.GetRolesAsync(user).Result;
+            var roles = await _userManager.GetRolesAsync(user);
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["TokenKey"]));
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_config["JWTSettings:TokenKey"])
+            );
 
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 

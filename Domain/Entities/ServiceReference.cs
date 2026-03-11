@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using Domain.Entities.Common;
 
 namespace Domain.Entities
 {
-    public class ServiceReference
+    public class ServiceReference : BaseEntity
     {
         [Key]
         public Guid Id { get; set; }
@@ -22,6 +23,14 @@ namespace Domain.Entities
 
         // Indicates if this service counts towards the VAT registration threshold (realization/income)
         public bool AffectsNdsThreshold { get; set; }
+
+        /// Тип услуги для счетчиков в Dashboard:
+        /// "Stat", "TaxMonthly", "TaxQuarterly", "TaxSemiAnnual", "TaxAnnual", "Personnel", "Common"
+        public string ServiceType { get; set; }
+
+        /// Если true, то эта услуга считается как "Разовая" (Хвосты),
+        /// а не входит в основной лимит операций тарифа.
+        public bool IsExtraService { get; set; }
 
         // Relationship: one service can be linked to many transaction entries
         public virtual ICollection<Transaction> Transactions { get; set; } =

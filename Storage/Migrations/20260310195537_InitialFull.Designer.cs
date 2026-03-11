@@ -11,8 +11,8 @@ using Storage;
 namespace Storage.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260307142949_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260310195537_InitialFull")]
+    partial class InitialFull
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,8 +39,23 @@ namespace Storage.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EcpExpiryDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("EcpPassword")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("EmployeesCount")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("EsfPassword")
                         .HasColumnType("TEXT");
@@ -48,6 +63,12 @@ namespace Storage.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
@@ -59,6 +80,9 @@ namespace Storage.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NdsStatus")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Oked")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PersonalInfo")
@@ -102,8 +126,23 @@ namespace Storage.Migrations
                     b.Property<DateTime>("ContractDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("MonthlyFee")
                         .HasPrecision(18, 2)
@@ -196,21 +235,21 @@ namespace Storage.Migrations
                         new
                         {
                             Id = 1,
-                            ConcurrencyStamp = "8356691d-18f7-4048-b811-db2436bf2e32",
+                            ConcurrencyStamp = "5a81a457-8f17-490e-8eb6-0a842e9a8dd8",
                             Name = "Junior_Accountant",
                             NormalizedName = "JUNIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 2,
-                            ConcurrencyStamp = "26cb78c4-2287-463b-b7d9-c6f5f86ae27e",
+                            ConcurrencyStamp = "31b3ac07-6141-4e34-87ef-d8eb9b252b64",
                             Name = "Senior_Accountant",
                             NormalizedName = "SENIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 3,
-                            ConcurrencyStamp = "7a76af10-f149-4eae-a3c2-d53b50aa1c63",
+                            ConcurrencyStamp = "7cd1b337-d3d4-4e62-aaad-90044bcb179f",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });
@@ -231,12 +270,33 @@ namespace Storage.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DefaultPerformerName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsExtraService")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ServiceType")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("StandardTimeMinutes")
@@ -265,12 +325,30 @@ namespace Storage.Migrations
                     b.Property<int>("CommunicationTimeMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("ExtraServiceAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsExtraService")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("OperationsCount")
                         .HasColumnType("INTEGER");
@@ -279,6 +357,9 @@ namespace Storage.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("ServiceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ServiceType")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
@@ -374,6 +455,46 @@ namespace Storage.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.UserTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Deadline")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
@@ -519,6 +640,17 @@ namespace Storage.Migrations
                     b.Navigation("Client");
 
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("Domain.Entities.UserTask", b =>
+                {
+                    b.HasOne("Domain.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>

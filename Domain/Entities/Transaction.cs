@@ -1,12 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Entities.Common;
 
 namespace Domain.Entities
 {
-    /// <summary>
-    /// Represents a work entry from the "TRANSACTIONS" sheet.
-    /// </summary>
-    public class Transaction
+    public class Transaction : BaseEntity
     {
         [Key]
         public Guid Id { get; set; }
@@ -27,18 +25,22 @@ namespace Domain.Entities
         public virtual ServiceReference Service { get; set; }
 
         public string PerformerName { get; set; } // Performed by (e.g., Dinara M)
-
         public int OperationsCount { get; set; }
-
         public int ActualTimeMinutes { get; set; }
-
         public int BillableTimeMinutes { get; set; }
 
         public int CommunicationTimeMinutes { get; set; }
+        public int ConsultingMinutes => CommunicationTimeMinutes;
 
         public string Status { get; set; } // e.g., "In Progress", "Completed"
 
+        public string ServiceType { get; set; } // "Stat", "TaxMonthly" и т.д.
+        public bool IsExtraService { get; set; } // Флаг "хвостов" (доп. услуг)
+
         [Column(TypeName = "decimal(18,2)")]
         public decimal ExtraServiceAmount { get; set; }
+
+        // Сумма для расчетов (если это доп. услуга)
+        public decimal Amount => ExtraServiceAmount;
     }
 }

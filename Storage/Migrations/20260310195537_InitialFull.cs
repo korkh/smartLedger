@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Storage.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialFull : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -72,6 +72,9 @@ namespace Storage.Migrations
                     TaxRegime = table.Column<string>(type: "TEXT", nullable: true),
                     NdsStatus = table.Column<string>(type: "TEXT", nullable: true),
                     TaxRiskLevel = table.Column<string>(type: "TEXT", nullable: true),
+                    Oked = table.Column<string>(type: "TEXT", nullable: true),
+                    EmployeesCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    EcpExpiryDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     ResponsiblePersonContact = table.Column<string>(type: "TEXT", nullable: true),
                     BankManagerContact = table.Column<string>(type: "TEXT", nullable: true),
                     ManagerNotes = table.Column<string>(type: "TEXT", nullable: true),
@@ -79,7 +82,12 @@ namespace Storage.Migrations
                     EsfPassword = table.Column<string>(type: "TEXT", nullable: true),
                     BankingPasswords = table.Column<string>(type: "TEXT", nullable: true),
                     StrategicNotes = table.Column<string>(type: "TEXT", nullable: true),
-                    PersonalInfo = table.Column<string>(type: "TEXT", nullable: true)
+                    PersonalInfo = table.Column<string>(type: "TEXT", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    LastModifiedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -95,7 +103,14 @@ namespace Storage.Migrations
                     StandardTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     BasePrice = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
                     DefaultPerformerName = table.Column<string>(type: "TEXT", nullable: true),
-                    AffectsNdsThreshold = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false)
+                    AffectsNdsThreshold = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
+                    ServiceType = table.Column<string>(type: "TEXT", nullable: true),
+                    IsExtraService = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    LastModifiedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -260,7 +275,12 @@ namespace Storage.Migrations
                     CarriedOverOperations = table.Column<int>(type: "INTEGER", nullable: false),
                     CarriedOverMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     ContractDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    LastModifiedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -271,6 +291,32 @@ namespace Storage.Migrations
                         principalTable: "Clients",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Tasks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", nullable: true),
+                    Deadline = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsCompleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    ClientId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    LastModifiedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tasks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Tasks_Clients_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "Clients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -287,7 +333,14 @@ namespace Storage.Migrations
                     BillableTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     CommunicationTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     Status = table.Column<string>(type: "TEXT", nullable: true),
-                    ExtraServiceAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
+                    ServiceType = table.Column<string>(type: "TEXT", nullable: true),
+                    IsExtraService = table.Column<bool>(type: "INTEGER", nullable: false),
+                    ExtraServiceAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    LastModifiedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -311,9 +364,9 @@ namespace Storage.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { 1, "8356691d-18f7-4048-b811-db2436bf2e32", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
-                    { 2, "26cb78c4-2287-463b-b7d9-c6f5f86ae27e", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
-                    { 3, "7a76af10-f149-4eae-a3c2-d53b50aa1c63", "Admin", "ADMIN" }
+                    { 1, "5a81a457-8f17-490e-8eb6-0a842e9a8dd8", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
+                    { 2, "31b3ac07-6141-4e34-87ef-d8eb9b252b64", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
+                    { 3, "7cd1b337-d3d4-4e62-aaad-90044bcb179f", "Admin", "ADMIN" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -370,6 +423,11 @@ namespace Storage.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Tasks_ClientId",
+                table: "Tasks",
+                column: "ClientId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_ClientId",
                 table: "Transactions",
                 column: "ClientId");
@@ -406,6 +464,9 @@ namespace Storage.Migrations
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
+
+            migrationBuilder.DropTable(
+                name: "Tasks");
 
             migrationBuilder.DropTable(
                 name: "Transactions");

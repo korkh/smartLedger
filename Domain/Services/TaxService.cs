@@ -21,21 +21,24 @@ namespace Domain.Services
     {
         public decimal GetRemainingNdsLimit(Client client, int year)
         {
-            if (client.NdsStatus == "Плательщик НДС")
+            // Если клиент уже на НДС, лимита нет
+            if (client.NdsStatus == "Taxpayer")
                 return 0;
 
             if (!TaxConstants.NdsThresholds.TryGetValue(year, out var threshold))
                 threshold = TaxConstants.DefaultNdsThreshold;
 
-            var totalIncome = client
+            // Суммируем только те услуги, которые влияют на порог НДС
+            var currentTurnover = client
                 .Transactions.Where(t =>
                     t.Date.Year == year
-                    && t.Status == "Завершен"
-                    && t.Service?.AffectsNdsThreshold == true
+                    && t.Status == "Completed"
+                    && t.Service != null
+                    && t.Service.AffectsNdsThreshold
                 )
                 .Sum(t => t.ExtraServiceAmount);
 
-            var remaining = threshold - totalIncome;
+            var remaining = threshold - currentTurnover;
             return remaining > 0 ? remaining : 0;
         }
 
@@ -49,27 +52,26 @@ namespace Domain.Services
 
             var monthlyTransactions = client
                 .Transactions.Where(t =>
-                    t.Date.Year == year && t.Date.Month == month && t.Status == "Завершен"
+                    t.Date.Year == year && t.Date.Month == month && t.Status == "Completed"
                 )
                 .ToList();
 
-            // Calculate operations
-            int totalOperationsUsed = monthlyTransactions.Sum(t => t.OperationsCount);
-            int totalOperationsLimit = tariff.OperationsLimit + tariff.CarriedOverOperations;
+            // 1. Расчет операций
+            int usedOps = monthlyTransactions.Sum(t => t.OperationsCount);
+            int totalOpsLimit = tariff.OperationsLimit + tariff.CarriedOverOperations;
 
-            stats.RemainingOperations = Math.Max(0, totalOperationsLimit - totalOperationsUsed);
+            stats.RemainingOperations = Math.Max(0, totalOpsLimit - usedOps);
             stats.OperationsPercentage =
-                totalOperationsLimit > 0
-                    ? (double)totalOperationsUsed / totalOperationsLimit * 100
-                    : 0;
+                totalOpsLimit > 0 ? Math.Min(100, (double)usedOps / totalOpsLimit * 100) : 0;
 
-            // Calculate communication minutes - FIXED PROPERTY NAME HERE
-            int totalMinutesUsed = monthlyTransactions.Sum(t => t.CommunicationTimeMinutes);
-            int totalMinutesLimit = tariff.CommunicationMinutesLimit + tariff.CarriedOverMinutes;
+            // 2. Расчет минут (консультации/коммуникации)
+            // Используем ActualTimeMinutes для транзакций типа "Консультация"
+            int usedMinutes = monthlyTransactions.Sum(t => t.ActualTimeMinutes);
+            int totalMinLimit = tariff.CommunicationMinutesLimit + tariff.CarriedOverMinutes;
 
-            stats.RemainingMinutes = Math.Max(0, totalMinutesLimit - totalMinutesUsed);
+            stats.RemainingMinutes = Math.Max(0, totalMinLimit - usedMinutes);
             stats.MinutesPercentage =
-                totalMinutesLimit > 0 ? (double)totalMinutesUsed / totalMinutesLimit * 100 : 0;
+                totalMinLimit > 0 ? Math.Min(100, (double)usedMinutes / totalMinLimit * 100) : 0;
 
             return stats;
         }

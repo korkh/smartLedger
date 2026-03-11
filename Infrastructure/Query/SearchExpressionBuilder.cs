@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Application.Common.Interfaces;
+using Domain.Interfaces;
 
 namespace Infrastructure.Services
 {

@@ -25,13 +25,22 @@ namespace Application.Core
 
             // 3. Dashboard Mapping
             CreateMap<Client, ClientDashboardDto>()
-                // Guid мапится автоматически, если имена совпадают
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.FirstName))
-                .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName));
+                .ForMember(d => d.TariffAmount, o => o.MapFrom(s => s.CurrentTariff.MonthlyFee))
+                .ForMember(
+                    d => d.OperationsLimit,
+                    o => o.MapFrom(s => s.CurrentTariff.OperationsLimit)
+                );
 
-            // 4. ClientTariff
-            CreateMap<ClientTariff, ClientTariffDto>().ReverseMap();
+            // 4. ClientTariff Mapping
+            CreateMap<ClientTariff, ClientTariffDto>()
+                .ForMember(d => d.ContractAmount, o => o.MapFrom(s => s.MonthlyFee))
+                .ForMember(d => d.AllowedOperations, o => o.MapFrom(s => s.OperationsLimit))
+                .ForMember(
+                    d => d.AllowedCommunicationMinutes,
+                    o => o.MapFrom(s => s.CommunicationMinutesLimit)
+                )
+                .ForMember(d => d.StartDate, o => o.MapFrom(s => s.ContractDate))
+                .ReverseMap();
         }
     }
 }

@@ -1,10 +1,10 @@
-using Application.Common.Interfaces;
 using Application.Core;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Domain.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging; // Added for logging
+using Microsoft.Extensions.Logging;
 using Storage;
 
 namespace Application.Clients
@@ -22,7 +22,7 @@ namespace Application.Clients
             private readonly IMapper _mapper;
             private readonly ISearchExpressionBuilder _searchBuilder;
             private readonly IUserAccessor _userAccessor;
-            private readonly ILogger<GetList> _logger; // Logger field
+            private readonly ILogger<GetList> _logger;
 
             public Handler(
                 DataContext context,
@@ -30,7 +30,7 @@ namespace Application.Clients
                 ISearchExpressionBuilder searchBuilder,
                 IUserAccessor userAccessor,
                 ILogger<GetList> logger
-            ) // Injected logger
+            )
             {
                 _context = context;
                 _mapper = mapper;
@@ -53,11 +53,17 @@ namespace Application.Clients
 
                 try
                 {
-                    // 1. Инициализация запроса (Entity уровень)
-                    var query = _context.Clients.AsNoTracking();
+                    // 1. Инициализация запроса
+                    var query = _context
+                        .Clients.Include(x => x.CurrentTariff)
+                        .Include(x => x.Transactions)
+                        .AsNoTracking();
 
-                    // 2. Базовая фильтрация и безопасность (Entity уровень - максимально быстро)
-                    query = query.Where(x => x.ResponsiblePersonContact.Contains(userName));
+                    // 2. Базовая фильтрация и безопасность
+                    if (userName.ToLower() != "admin")
+                    {
+                        query = query.Where(x => x.ResponsiblePersonContact.Contains(userName));
+                    }
 
                     if (!string.IsNullOrEmpty(request.Params.BinIin))
                         query = query.Where(x => x.BinIin.Contains(request.Params.BinIin));
@@ -68,26 +74,38 @@ namespace Application.Clients
                     if (!string.IsNullOrEmpty(request.Params.NdsStatus))
                         query = query.Where(x => x.NdsStatus == request.Params.NdsStatus);
 
+                    // --- НОВОЕ: Фильтрация по сроку ЭЦП ---
+                    if (request.Params.EcpWarningOnly)
+                    {
+                        var today = DateTime.UtcNow;
+                        var warningThreshold = today.AddDays(request.Params.EcpWarningDays);
+
+                        // Показываем только тех, у кого срок в диапазоне [сегодня; сегодня + N дней]
+                        query = query.Where(x =>
+                            x.EcpExpiryDate.HasValue
+                            && x.EcpExpiryDate.Value <= warningThreshold
+                            && x.EcpExpiryDate.Value >= today
+                        );
+
+                        _logger.LogDebug(
+                            "Применен фильтр критических ЭЦП: порог {Days} дней",
+                            request.Params.EcpWarningDays
+                        );
+                    }
+
                     // 3. Проекция в DTO
                     var dtoQuery = query.ProjectTo<ClientDto>(_mapper.ConfigurationProvider);
 
-                    // 4. Глобальный поиск (уже по DTO полям)
-                    // Важно: ISearchExpressionBuilder теперь работает внутри IQueryable
+                    // 4. Глобальный поиск (по текстовым полям DTO)
                     if (!string.IsNullOrWhiteSpace(request.Params.Search))
                     {
-                        _logger.LogDebug(
-                            "Применение глобального поиска: {SearchText}",
-                            request.Params.Search
-                        );
-
                         var searchPredicate = _searchBuilder.BuildSearchExpression<ClientDto>(
                             request.Params.Search
                         );
-
                         dtoQuery = dtoQuery.Where(searchPredicate);
                     }
 
-                    // 5. Динамическая сортировка (уже по DTO)
+                    // 5. Динамическая сортировка
                     dtoQuery = (request.Params.SortField?.ToLower()) switch
                     {
                         "firstname" => request.Params.Order == "asc"
@@ -99,34 +117,35 @@ namespace Application.Clients
                         "bin" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(e => e.BinIin)
                             : dtoQuery.OrderByDescending(e => e.BinIin),
-                        _ => dtoQuery.OrderBy(e => e.FirstName), // Дефолтная сортировка
+                        "ecpdate" => request.Params.Order == "asc" // Добавили сортировку по дате ЭЦП
+                            ? dtoQuery.OrderBy(e => e.EcpExpiryDate)
+                            : dtoQuery.OrderByDescending(e => e.EcpExpiryDate),
+                        _ => dtoQuery.OrderBy(e => e.FirstName),
                     };
 
-                    // 6. Пагинация и выполнение запроса в БД
+                    // 6. Выполнение
                     var pagedList = await PagedList<ClientDto>.CreateAsync(
                         dtoQuery,
                         request.Params.PageNumber,
                         request.Params.PageSize
                     );
 
-                    _logger.LogInformation(
-                        "Успешно получено {Count} клиентов для пользователя {User}",
-                        pagedList.Count,
-                        userName
-                    );
+                    foreach (var item in pagedList)
+                    {
+                        if (item.EcpExpiryDate.HasValue)
+                        {
+                            item.DaysUntilEcpExpires = (
+                                item.EcpExpiryDate.Value - DateTime.UtcNow
+                            ).Days;
+                        }
+                    }
 
                     return Result<PagedList<ClientDto>>.Success(pagedList);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(
-                        ex,
-                        "Критическая ошибка при получении списка клиентов для {User}",
-                        userName
-                    );
-                    return Result<PagedList<ClientDto>>.Failure(
-                        "Произошла ошибка при загрузке данных."
-                    );
+                    _logger.LogError(ex, "Критическая ошибка списка клиентов для {User}", userName);
+                    return Result<PagedList<ClientDto>>.Failure("Ошибка при загрузке данных.");
                 }
             }
         }
