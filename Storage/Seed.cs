@@ -127,15 +127,12 @@ namespace Storage
                 string[] companyNames =
                 {
                     "Alash Provision",
-                    "Business Networking",
                     "Ainalayin",
                     "Buratino & Co",
                     "Zharyk NRG",
                     "Alpha Group",
                     "KazRefTrans",
                     "Impec Finance",
-                    "Green Valley",
-                    "Nomad Logistics",
                 };
                 string[] regimes = { "ОУР", "Упрощенка", "Розничный налог" };
                 string[] riskLevels = { "Low", "Medium", "High" };
@@ -145,23 +142,21 @@ namespace Storage
                     var responsibleUser = allUsers[random.Next(allUsers.Count)];
                     var regime = regimes[random.Next(regimes.Length)];
                     var companyName = companyNames[random.Next(companyNames.Length)] + " " + i;
-                    // Генерируем случайный долг для Dashboard ("Хвосты")
-                    decimal initialDebt = i % 4 == 0 ? random.Next(5000, 50000) : 0;
 
                     var client = new Client
                     {
                         FirstName = companyName,
                         LastName = i % 3 == 0 ? "ТОО" : "ИП",
-                        BinIin = (100000000000 + random.NextInt64(899999999999)).ToString(), // Random 12 digits
+                        BinIin = (100000000000 + random.NextInt64(899999999999)).ToString(),
                         Address = $"г. Алматы, Район {random.Next(1, 8)}, дом {i}",
                         TaxRegime = regime,
-                        NdsStatus = i % 5 == 0 ? "Плательщик НДС" : "Не плательщик",
+                        NdsStatus = i % 4 == 0 ? "Плательщик НДС" : "Не плательщик", // Чаще делаем плательщиками для теста
                         TaxRiskLevel = riskLevels[random.Next(riskLevels.Length)],
                         Oked = random.Next(10000, 99999).ToString(),
-                        EmployeesCount = random.Next(1, 50),
+                        EmployeesCount = random.Next(5, 50), // Не 0
                         EcpExpiryDate = DateTime.UtcNow.AddDays(random.Next(10, 300)),
                         ResponsiblePersonContact = responsibleUser.UserName,
-                        TotalDebt = initialDebt,
+                        // TotalDebt мы посчитаем ниже на основе транзакций
                         BankManagerContact =
                             "+7 707 "
                             + random.Next(100, 999)
@@ -179,32 +174,41 @@ namespace Storage
                         CurrentTariff = new ClientTariff
                         {
                             MonthlyFee = regime == "ОУР" ? 250000 : 75000,
-                            OperationsLimit = regime == "ОУР" ? 1000 : 200,
+                            OperationsLimit = regime == "ОУР" ? 500 : 100, // Уменьшим лимит, чтобы легче было вызвать "перерасход"
                             CommunicationMinutesLimit = 300,
                             ContractDate = DateTime.UtcNow.AddMonths(-random.Next(1, 12)),
                             IsActive = true,
                             CreatedBy = "Seed",
                             CreatedAt = DateTime.UtcNow,
                         },
+                        Transactions = new List<Transaction>(),
                     };
 
-                    // Add Transactions for each client
-                    for (int t = 0; t < 5; t++)
+                    decimal calculatedDebt = 0;
+
+                    // Генерируем транзакции
+                    // Для каждого клиента создаем 8-12 транзакций, чтобы превысить лимиты
+                    int transactionCount = random.Next(8, 15);
+                    for (int t = 0; t < transactionCount; t++)
                     {
                         var srv = services[random.Next(services.Count)];
-                        bool isExtra = srv.IsExtraService || t > 5; // Делаем часть услуг разовыми
+
+                        // Логика "Хвостов": каждая третья транзакция - это разовая услуга (Extra)
+                        bool isExtra = (t % 3 == 0);
                         decimal extraAmount = isExtra ? srv.BasePrice : 0;
+                        calculatedDebt += extraAmount;
+
                         client.Transactions.Add(
                             new Transaction
                             {
-                                Date = DateTime.UtcNow.AddDays(-random.Next(0, 28)), // Текущий месяц для Dashboard
+                                Date = DateTime.UtcNow.AddDays(-random.Next(0, 28)),
                                 ServiceId = srv.Id,
                                 ServiceType = srv.ServiceType,
                                 IsExtraService = isExtra,
                                 ExtraServiceAmount = extraAmount,
-                                OperationsCount = 1,
-                                ActualTimeMinutes = random.Next(10, 60),
-                                CommunicationTimeMinutes = random.Next(0, 15),
+                                OperationsCount = random.Next(1, 10),
+                                ActualTimeMinutes = random.Next(15, 120),
+                                CommunicationTimeMinutes = random.Next(5, 30),
                                 Status = "Completed",
                                 PerformerName = responsibleUser.DisplayedName,
                                 CreatedBy = "Seed",
@@ -212,6 +216,9 @@ namespace Storage
                             }
                         );
                     }
+
+                    // Присваиваем накопленный долг клиенту
+                    client.TotalDebt = calculatedDebt;
 
                     context.Clients.Add(client);
                 }

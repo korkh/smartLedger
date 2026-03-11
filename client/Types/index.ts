@@ -23,7 +23,8 @@ export type DashboardData = {
   annualTaxReports: number;
   personnelCount: number;
   tariffAmount: number;
-  extraServicesAmount: number;
+  monthlyExtraServicesAmount: number;
+  totalOutstandingDebt: number;
   totalToPay: number;
   ndsThreshold: number;
   currentYearTurnover: number;

@@ -92,7 +92,7 @@ export default function DashboardPage({
             <HiExclamationCircle className="text-orange-500 text-2xl" />
           </div>
           <div className="mt-2 text-2xl font-bold text-orange-600">
-            +{(data.extraServicesAmount ?? 0).toLocaleString()} ₸
+            +{(data.monthlyExtraServicesAmount ?? 0).toLocaleString()} ₸
           </div>
           <p className="text-xs text-gray-400">
             Начислено сверх пакета в текущем месяце
