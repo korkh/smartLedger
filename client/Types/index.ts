@@ -35,7 +35,7 @@ export type DashboardData = {
   tariffAmount: number;
   monthlyExtraServicesAmount: number;
   totalOutstandingDebt: number;
-  totalToPay: number; // Вычисляемое на бэкенде
+  totalToPay: number;
   grandTotalDue: number;
 
   // --- БЛОК 4: ЛИМИТЫ НДС ---
@@ -45,12 +45,11 @@ export type DashboardData = {
   ndsProgressPercentage: number;
 
   // --- БЛОК 5: СРОКИ И ЗАДАЧИ ---
-  ecpExpiryDate: string | null; // ISO Date String
+  ecpExpiryDate: string | null;
   daysUntilEcpExpires: number;
   activeTasksCount: number;
   overdueTasksCount: number;
 
-  // AI-аналитика
   aiInsight?: string;
 };
 
@@ -84,18 +83,27 @@ export interface Transaction {
   date: string;
   clientId: string;
   clientName: string;
-  serviceId: string;
-  serviceName: string;
+
+  // Типизация через Enum
+  serviceType: ServiceType;
+  serviceTypeName: string; // Локализованное название (например, "Стат. отчет")
+  serviceId?: string;
+  serviceName?: string;
+
   performerName: string;
   operationsCount: number;
   actualTimeMinutes: number;
   billableTimeMinutes: number;
   communicationTimeMinutes: number;
   status: string;
+
+  isExtraService: boolean;
   extraServiceAmount: number;
+  ndsBaseAmount: number;
 }
 
 export interface CurrentTariff {
+  id: string;
   monthlyFee: number;
   contractAmount: number;
   startDate: string;
@@ -113,5 +121,33 @@ export interface CurrentTariff {
   annualTaxReportsLimit: number;
   employeeCountLimit: number;
 }
+
+export enum ServiceType {
+  None = 0,
+  BankStatement = 1,
+  TaxCalculation = 2,
+  CargoCustoms = 3,
+  InventoryWriteOff = 4,
+  Payroll = 5,
+  StatReport = 6,
+  TaxReport = 7,
+  QuarterlyTaxReport = 8,
+  SemiAnnualTaxReport = 9,
+  AnnualTaxReport = 10,
+}
+
+export const getServiceTypeName = (type: ServiceType): string => {
+  const names: Record<number, string> = {
+    [ServiceType.BankStatement]: "Выписка банка",
+    [ServiceType.CargoCustoms]: "ЭАВР / СНТ",
+    [ServiceType.Payroll]: "Кадры / ЗП",
+    [ServiceType.StatReport]: "Стат. отчет",
+    [ServiceType.TaxReport]: "Месячный отчет",
+    [ServiceType.QuarterlyTaxReport]: "Квартальный отчет",
+    [ServiceType.SemiAnnualTaxReport]: "Полугодовой отчет",
+    [ServiceType.AnnualTaxReport]: "Годовой отчет",
+  };
+  return names[type] || "Прочая услуга";
+};
 
 export type Clients = Client[];

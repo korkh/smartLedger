@@ -1,6 +1,6 @@
 "use client";
 
-import AiInsightCard from "@/app/components/dashboard/AiInsightCard";
+import AiInsightCard from "@/app/components/AiInsightCard";
 import DateFilter from "@/app/components/DateFilter";
 import { DashboardFilters, useDashboard } from "@/app/hooks/useDashboard";
 import { useDashboardStore } from "@/app/hooks/useDashboardStore";
@@ -86,7 +86,6 @@ export default function DashboardPage({
         <DateFilter filters={filters} onPeriodChange={handlePeriodChange} />
       </div>
 
-      {/* AI Аналитика */}
       <AiInsightCard />
 
       {/* Финансовый блок: Тариф, Хвосты, Долг */}

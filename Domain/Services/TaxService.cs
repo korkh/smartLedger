@@ -36,13 +36,13 @@ public class TaxService(ILogger<TaxService> logger) : ITaxService
         if (!TaxConstants.NdsThresholds.TryGetValue(year, out var threshold))
             threshold = TaxConstants.DefaultNdsThreshold;
 
-        // Summing the turnover based on transactions that affect the VAT threshold
+        // Суммируем оборот на основе транзакций, чей тип влияет на порог НДС
         var currentTurnover = client
             .Transactions.Where(t =>
                 t.Date.Year == year
                 && t.Status == "Completed"
-                && t.Service != null
-                && t.Service.AffectsNdsThreshold
+                // Теперь проверяем через Enum, а не через навигационное свойство Service
+                && TaxConstants.NdsAffectingServices.Contains(t.ServiceType)
             )
             .Sum(t => t.NdsBaseAmount);
 
@@ -62,16 +62,22 @@ public class TaxService(ILogger<TaxService> logger) : ITaxService
             .ToList();
 
         // 1. Map report metrics from transaction properties (aligned with CSV columns)
-        stats.StatReportsCount = monthlyTransactions.Sum(t => t.StatReports ?? 0);
-        // В TaxService.cs
-        stats.MonthlyTaxReports = monthlyTransactions.Sum(t =>
-            t.MonthlyTaxReports.GetValueOrDefault()
+        stats.StatReportsCount = monthlyTransactions.Count(t =>
+            t.ServiceType == ServiceType.StatReport
         );
-        stats.QuarterlyTaxReports = monthlyTransactions.Sum(t =>
-            t.QuarterlyTaxReports.GetValueOrDefault()
+        stats.MonthlyTaxReports = monthlyTransactions.Count(t =>
+            t.ServiceType == ServiceType.TaxReport
         );
-        stats.SemiAnnualTaxReports = monthlyTransactions.Sum(t => t.SemiAnnualTaxReports ?? 0);
-        stats.AnnualTaxReports = monthlyTransactions.Sum(t => t.AnnualTaxReports ?? 0);
+
+        stats.QuarterlyTaxReports = monthlyTransactions.Count(t =>
+            t.ServiceType == ServiceType.QuarterlyTaxReport
+        );
+        stats.SemiAnnualTaxReports = monthlyTransactions.Count(t =>
+            t.ServiceType == ServiceType.SemiAnnualTaxReport
+        );
+        stats.AnnualTaxReports = monthlyTransactions.Count(t =>
+            t.ServiceType == ServiceType.AnnualTaxReport
+        );
 
         var tariff = client.CurrentTariff;
         if (tariff == null)
@@ -80,7 +86,7 @@ public class TaxService(ILogger<TaxService> logger) : ITaxService
             return stats;
         }
 
-        // 2. Operations calculation (Limit + Carry-over vs Actual used)
+        // 2. Лимиты операций
         int totalOpsLimit = tariff.OperationsLimit + tariff.CarriedOverOperations;
         int usedOps = monthlyTransactions.Sum(t => t.OperationsCount);
 
@@ -88,7 +94,7 @@ public class TaxService(ILogger<TaxService> logger) : ITaxService
         stats.OperationsPercentage =
             totalOpsLimit > 0 ? Math.Round((double)usedOps / totalOpsLimit * 100, 2) : 0;
 
-        // 3. Communication minutes calculation
+        // 3. Лимиты консультаций
         int totalMinLimit = tariff.CommunicationMinutesLimit + tariff.CarriedOverMinutes;
         int usedMinutes = monthlyTransactions.Sum(t => t.ActualTimeMinutes);
 

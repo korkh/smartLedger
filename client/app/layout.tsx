@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
 import { ToastContainer } from "react-toastify";
+import { Header } from "./components/layout/Header";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -19,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <head>
         <ThemeModeScript />
       </head>
@@ -27,6 +28,7 @@ export default function RootLayout({
         className={inter.className + "bg-gray-50 dark:bg-gray-900 min-h-screen"}
       >
         <SessionProvider>
+          <Header />
           <ToastContainer
             position="bottom-right"
             hideProgressBar

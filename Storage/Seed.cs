@@ -1,3 +1,4 @@
+using Domain.Constants;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -51,31 +52,23 @@ namespace Storage
                 }
             }
 
-            // 2. Service Reference (Based on your Excel "Справочник")
+            // 2. Service Reference (Используем Enum ServiceType вместо строк)
             if (!context.ServiceReferences.Any())
             {
                 var serviceRefs = new List<ServiceReference>
                 {
                     new ServiceReference
                     {
-                        Name = "СНТ (Сопроводительная накладная)",
-                        ServiceType = "SNT",
+                        Name = "ЭАВР / СНТ",
+                        ServiceType = ServiceType.CargoCustoms,
                         BasePrice = 5000,
                         AffectsNdsThreshold = true,
                         CreatedBy = "Seed",
                     },
                     new ServiceReference
                     {
-                        Name = "ЭАВР (Акт выполненных работ)",
-                        ServiceType = "SNT",
-                        BasePrice = 3000,
-                        AffectsNdsThreshold = true,
-                        CreatedBy = "Seed",
-                    },
-                    new ServiceReference
-                    {
-                        Name = "Приём на работу сотрудника",
-                        ServiceType = "HR",
+                        Name = "Приём на работу / ЗП",
+                        ServiceType = ServiceType.Payroll,
                         BasePrice = 7000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
@@ -83,49 +76,49 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Разноска выписки банка",
-                        ServiceType = "Bank",
+                        ServiceType = ServiceType.BankStatement,
                         BasePrice = 10000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
                     },
                     new ServiceReference
                     {
-                        Name = "910.00 Упрощенная декларация",
-                        ServiceType = "TaxSemiAnnual",
-                        BasePrice = 25000,
-                        AffectsNdsThreshold = true,
-                        CreatedBy = "Seed",
-                    },
-                    new ServiceReference
-                    {
-                        Name = "Консультация по налогам",
-                        ServiceType = "Consulting",
-                        BasePrice = 15000,
-                        AffectsNdsThreshold = false,
-                        CreatedBy = "Seed",
-                    },
-                    new ServiceReference
-                    {
-                        Name = "200.00 ИПН и Социальный налог",
-                        ServiceType = "TaxMonthly", // Попадает в taxMonthly
+                        Name = "Месячный налоговый отчет",
+                        ServiceType = ServiceType.TaxReport,
                         BasePrice = 12000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
                     },
                     new ServiceReference
                     {
-                        Name = "300.00 Декларация по НДС",
-                        ServiceType = "TaxQuarterly", // Попадает в taxQuarterly при t == 1
+                        Name = "Квартальный налоговый отчет",
+                        ServiceType = ServiceType.QuarterlyTaxReport,
                         BasePrice = 35000,
                         AffectsNdsThreshold = true,
                         CreatedBy = "Seed",
                     },
                     new ServiceReference
                     {
-                        Name = "100.00 Декларация по КПН (Годовая)",
-                        ServiceType = "TaxAnnual", // Попадает в taxAnnual
+                        Name = "Полугодовой налоговый отчет",
+                        ServiceType = ServiceType.SemiAnnualTaxReport,
+                        BasePrice = 25000,
+                        AffectsNdsThreshold = true,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "Годовой налоговый отчет",
+                        ServiceType = ServiceType.AnnualTaxReport,
                         BasePrice = 60000,
                         AffectsNdsThreshold = true,
+                        CreatedBy = "Seed",
+                    },
+                    new ServiceReference
+                    {
+                        Name = "Стат. отчет",
+                        ServiceType = ServiceType.StatReport,
+                        BasePrice = 8000,
+                        AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
                     },
                 };
@@ -153,6 +146,32 @@ namespace Storage
                 string[] regimes = { "ОУР", "Упрощенка", "Розничный налог" };
                 string[] riskLevels = { "Low", "Medium", "High" };
 
+                // Данные для личных заметок
+                string[] personalNotes =
+                {
+                    "Предпочитает общение в WhatsApp",
+                    "Доступ в Каспи через Ксению",
+                    "Всегда просит акты сверки до 5 числа",
+                    "Очень пунктуальный клиент",
+                    "Сложный характер, согласовывать всё письменно",
+                };
+                string[] strategicNotes =
+                {
+                    "Планирует переход на НДС в следующем году",
+                    "Нужна оптимизация по зарплатным налогам",
+                    "Интересуется аудитом за 2024 год",
+                    "Возможен переезд офиса, потребуется смена юр. адреса",
+                    "Активно масштабируется",
+                };
+                string[] managerNotes =
+                {
+                    "Планирует переход на НДС в следующем году",
+                    "Нужна оптимизация по зарплатным налогам",
+                    "Интересуется аудитом за 2024 год",
+                    "Возможен переезд офиса, потребуется смена юр. адреса",
+                    "Активно масштабируется",
+                };
+
                 for (int i = 1; i <= 30; i++)
                 {
                     var responsibleUser = allUsers[random.Next(allUsers.Count)];
@@ -172,6 +191,11 @@ namespace Storage
                         EmployeesCount = random.Next(5, 50), // Не 0
                         EcpExpiryDate = DateTime.UtcNow.AddDays(random.Next(10, 300)),
                         ResponsiblePersonContact = responsibleUser.UserName,
+
+                        StrategicNotes = strategicNotes[random.Next(strategicNotes.Length)],
+                        PersonalInfo = personalNotes[random.Next(personalNotes.Length)],
+                        ManagerNotes = managerNotes[random.Next(managerNotes.Length)],
+
                         // TotalDebt мы посчитаем ниже на основе транзакций
                         BankManagerContact =
                             "+7 707 "
@@ -183,7 +207,6 @@ namespace Storage
                         EcpPassword = "EcpPassword" + i,
                         EsfPassword = "EsfSecret" + i,
                         BankingPasswords = "BankAuth" + i,
-                        ManagerNotes = "Auto-generated seed client",
                         CreatedBy = "Seed",
                         CreatedAt = DateTime.UtcNow,
 
@@ -200,62 +223,54 @@ namespace Storage
                         Transactions = new List<Transaction>(),
                     };
 
-                    decimal calculatedDebt = 0;
-
                     // Генерируем транзакции
                     // Для каждого клиента создаем 8-12 транзакций, чтобы превысить лимиты
                     int transactionCount = random.Next(8, 15);
-                    for (int t = 0; t < transactionCount; t++)
+                    decimal calculatedDebt = 0;
+                    // Решаем: будет ли этот клиент должником? (например, 40% вероятность долга)
+                    bool isDebtor = random.Next(1, 100) <= 40;
+
+                    for (int monthOffset = 0; monthOffset < 6; monthOffset++)
                     {
-                        var srv = services[random.Next(services.Count)];
-                        bool isExtra = (t % 4 == 0);
-                        decimal extraAmount = isExtra ? srv.BasePrice : 0;
-                        calculatedDebt += extraAmount;
+                        // Для каждого месяца создаем 2-4 транзакции
+                        int monthlyTCount = random.Next(2, 5);
 
-                        // ДОБАВЛЯЕМ: Генерация суммы оборота клиента для НДС
-                        // Если услуга влияет на НДС (AffectsNdsThreshold), генерируем крупную сумму оборота
-                        decimal ndsTurnover = srv.AffectsNdsThreshold
-                            ? (
-                                i % 5 == 0
-                                    ? random.Next(50_000_000, 70_000_000)
-                                    : random.Next(100_000, 2_000_000)
-                            )
-                            : 0;
+                        for (int t = 0; t < monthlyTCount; t++)
+                        {
+                            var srv = services[random.Next(services.Count)];
+                            bool isExtra = t % 3 == 0; // Чуть больше доп. услуг для красоты графика
+                            decimal extraAmount = isExtra ? srv.BasePrice : 0;
 
-                        int stat = (srv.ServiceType == "SNT" && random.Next(0, 5) == 1) ? 1 : 0;
-                        int taxMonthly = (srv.ServiceType == "TaxMonthly") ? 1 : 0;
-                        int taxQuarterly = (srv.ServiceType == "TaxQuarterly" && t == 1) ? 1 : 0;
-
-                        int taxSemiAnnual = (srv.ServiceType == "TaxSemiAnnual") ? 1 : 0;
-
-                        int taxAnnual =
-                            (srv.ServiceType == "TaxAnnual" || (i % 15 == 0 && t == 3)) ? 1 : 0;
-
-                        client.Transactions.Add(
-                            new Transaction
+                            if (isDebtor)
                             {
-                                Date = DateTime.UtcNow.AddDays(-random.Next(0, 28)), // Попадаем в текущий месяц
-                                ServiceId = srv.Id,
-                                ServiceType = srv.ServiceType,
-                                IsExtraService = isExtra,
-                                ExtraServiceAmount = extraAmount, // комиссия
-                                NdsBaseAmount = ndsTurnover,
-                                OperationsCount = random.Next(1, 10),
-                                ActualTimeMinutes = random.Next(15, 120),
-                                CommunicationTimeMinutes = random.Next(5, 30),
-                                Status = "Completed",
-                                PerformerName = responsibleUser.DisplayedName,
-
-                                StatReports = stat,
-                                MonthlyTaxReports = taxMonthly,
-                                QuarterlyTaxReports = taxQuarterly,
-                                SemiAnnualTaxReports = taxSemiAnnual,
-                                AnnualTaxReports = taxAnnual,
-
-                                CreatedBy = "Seed",
-                                CreatedAt = DateTime.UtcNow,
+                                calculatedDebt += extraAmount;
                             }
-                        );
+
+                            decimal ndsTurnover = srv.AffectsNdsThreshold
+                                ? random.Next(500_000, 5_000_000)
+                                : 0;
+
+                            client.Transactions.Add(
+                                new Transaction
+                                {
+                                    // Устанавливаем дату в зависимости от месяца
+                                    Date = DateTime
+                                        .UtcNow.AddMonths(-monthOffset)
+                                        .AddDays(-random.Next(1, 25)),
+                                    ServiceId = srv.Id,
+                                    ServiceType = srv.ServiceType,
+                                    IsExtraService = isExtra,
+                                    ExtraServiceAmount = extraAmount,
+                                    NdsBaseAmount = isExtra ? 0 : srv.BasePrice,
+                                    OperationsCount = random.Next(1, 10),
+                                    ActualTimeMinutes = random.Next(15, 120),
+                                    Status = "Completed",
+                                    PerformerName = responsibleUser.DisplayedName,
+                                    CreatedBy = "Seed",
+                                    CreatedAt = DateTime.UtcNow,
+                                }
+                            );
+                        }
                     }
 
                     // Присваиваем накопленный долг клиенту

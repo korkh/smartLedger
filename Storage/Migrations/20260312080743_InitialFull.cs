@@ -105,7 +105,7 @@ namespace Storage.Migrations
                     BasePrice = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
                     DefaultPerformerName = table.Column<string>(type: "TEXT", nullable: true),
                     AffectsNdsThreshold = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
-                    ServiceType = table.Column<string>(type: "TEXT", nullable: true),
+                    ServiceType = table.Column<int>(type: "INTEGER", nullable: false),
                     IsExtraService = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
@@ -327,19 +327,14 @@ namespace Storage.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Date = table.Column<DateTime>(type: "TEXT", nullable: false),
                     ClientId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    ServiceId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    ServiceType = table.Column<int>(type: "INTEGER", nullable: false),
+                    ServiceId = table.Column<Guid>(type: "TEXT", nullable: true),
                     PerformerName = table.Column<string>(type: "TEXT", nullable: true),
                     OperationsCount = table.Column<int>(type: "INTEGER", nullable: false),
                     ActualTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     BillableTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     CommunicationTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
-                    StatReports = table.Column<int>(type: "INTEGER", nullable: true),
-                    MonthlyTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
-                    QuarterlyTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
-                    SemiAnnualTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
-                    AnnualTaxReports = table.Column<int>(type: "INTEGER", nullable: true),
                     Status = table.Column<string>(type: "TEXT", nullable: true),
-                    ServiceType = table.Column<string>(type: "TEXT", nullable: true),
                     IsExtraService = table.Column<bool>(type: "INTEGER", nullable: false),
                     ExtraServiceAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     NdsBaseAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -362,8 +357,7 @@ namespace Storage.Migrations
                         name: "FK_Transactions_ServiceReferences_ServiceId",
                         column: x => x.ServiceId,
                         principalTable: "ServiceReferences",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.InsertData(
@@ -371,9 +365,9 @@ namespace Storage.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { 1, "80047ced-0b99-4c9b-b7eb-740f77a1c00d", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
-                    { 2, "251e0fe2-8d33-444a-92fc-ce896584c294", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
-                    { 3, "27147b9c-8179-461e-bfe5-010b70913f86", "Admin", "ADMIN" }
+                    { 1, "beb7a6ac-1ea1-462c-a35b-a9dcefb72a60", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
+                    { 2, "28b61f49-acaf-4b68-a9bd-925df18c8362", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
+                    { 3, "f2f0e4ea-7e1e-41a9-8709-677ce95bb7bf", "Admin", "ADMIN" }
                 });
 
             migrationBuilder.CreateIndex(

@@ -7,6 +7,7 @@ namespace API.Services
     public interface IaiAnalysisService
     {
         Task<string> GetDashboardInsightAsync(object dashboardData);
+        Task<string> GetClientInsightAsync(object clientData);
     }
 
     public class AiAnalysisService : IaiAnalysisService
@@ -95,6 +96,75 @@ namespace API.Services
             catch (Exception ex)
             {
                 return $"Ошибка анализа: {ex.Message}";
+            }
+        }
+
+        public async Task<string> GetClientInsightAsync(object clientData)
+        {
+            try
+            {
+                var jsonData = JsonSerializer.Serialize(clientData);
+
+                var request = new OllamaChatRequest
+                {
+                    model = "llama3.2:3b",
+                    stream = false,
+                    messages = new List<OllamaMessage>
+                    {
+                        new()
+                        {
+                            role = "system",
+                            content =
+                                @"Ты — финансовый аналитик системы SmartLedger. Твоя задача: провести аудит карточки конкретного клиента.
+        
+        ПРАВИЛА АНАЛИЗА:
+        1. ТАРИФ И ЛИМИТЫ: Сравни количество фактических операций с лимитом в тарифе. Если превышение > 10%, предложи переход на следующий пакет.
+        2. ОБОРОТЫ И НДС: Порог постановки на учет по НДС в Казахстане — 30 000 МРП (примерно 110 млн ₸). Если текущий оборот клиента превысил 25 000 МРП, выдели это как критический риск.
+        3. ДОЛГИ: Четко разделяй: 'текущий счет' (за этот месяц) и 'дебиторская задолженность' (просрочка за прошлые периоды). 
+        4. БЕЗОПАСНОСТЬ: Проверь срок действия ЭЦП. Если осталось менее 10 дней, требуй немедленного продления.
+        5. ДОП. ДОХОД: Если клиент часто заказывает услуги вне тарифа (extraServiceAmount), отметь это как повод для обсуждения индивидуальных условий.
+
+        ТРЕБОВАНИЯ К ОТВЕТУ:
+        - Максимум 3 коротких, емких предложения.
+        - Никаких вводных слов ('Исходя из данных...', 'Я вижу...'). Сразу к делу.
+        - Используй только человеческие названия: вместо 'binIin' — 'ИИН', вместо 'ecpExpiryDate' — 'срок ЭЦП'.
+        - Если данных по какому-то пункту нет, просто пропусти его.
+        - Тон: деловой, предупреждающий.",
+                        },
+                        new()
+                        {
+                            role = "user",
+                            content =
+                                $"Проанализируй данные этого клиента и дай краткое резюме: {jsonData}",
+                        },
+                    },
+                };
+
+                var response = await _httpClient.PostAsync(
+                    "/api/chat",
+                    new StringContent(
+                        JsonSerializer.Serialize(request),
+                        Encoding.UTF8,
+                        "application/json"
+                    )
+                );
+
+                if (!response.IsSuccessStatusCode)
+                    return "Не удалось получить анализ (сервер ИИ недоступен).";
+
+                var responseString = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(responseString);
+
+                if (doc.RootElement.TryGetProperty("message", out var messageElement))
+                {
+                    return messageElement.GetProperty("content").GetString() ?? "Анализ пуст.";
+                }
+
+                return "Ошибка обработки ответа ИИ.";
+            }
+            catch (Exception ex)
+            {
+                return $"Ошибка связи с ИИ: {ex.Message}";
             }
         }
     }

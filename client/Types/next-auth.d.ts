@@ -19,4 +19,8 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     username?: string;
   }
+
+  interface User {
+    username: string;
+  }
 }

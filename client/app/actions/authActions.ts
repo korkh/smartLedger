@@ -6,7 +6,7 @@ export async function getCurrentUser() {
   try {
     const session = await auth();
     if (!session) return null;
-    return session.user;
+    return session?.user ?? null;
   } catch (error) {
     console.error("Error fetching current user:", error);
     return null;

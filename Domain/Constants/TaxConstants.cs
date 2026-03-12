@@ -13,5 +13,13 @@ namespace Domain.Constants
 
         // Default value if year is not found (20,000 MRP estimate)
         public const decimal DefaultNdsThreshold = 73840000m;
+
+        public static readonly ServiceType[] NdsAffectingServices =
+        [
+            ServiceType.BankStatement,
+            ServiceType.CargoCustoms, // ЭАВР / СНТ
+            ServiceType.TaxCalculation,
+            ServiceType.InventoryWriteOff,
+        ];
     }
 }

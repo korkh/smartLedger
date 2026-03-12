@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/formatDate";
 import { Client } from "@/Types";
 import {
   Badge,
@@ -7,8 +8,10 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
+  Tooltip,
 } from "flowbite-react";
 import Link from "next/link";
+import { HiIdentification, HiTrendingUp } from "react-icons/hi";
 import { getData } from "../actions/clientsActions";
 import AppPagination from "../components/AppPagination";
 import SearchInput from "../components/SearchInput";
@@ -27,7 +30,7 @@ export default async function ClientsPage({
 
   const urlParams = new URLSearchParams({
     pageNumber: params.pageNumber || "1",
-    pageSize: "15", // Увеличим размер страницы для таблицы
+    pageSize: "8",
     search: params.search || "",
     sortField: params.sortField || "firstname",
     order: "asc",
@@ -38,6 +41,7 @@ export default async function ClientsPage({
   }
 
   const result = await getData(`?${urlParams.toString()}`);
+  console.log("Result from clients page", result);
 
   if (!result || !result.items) {
     return (
@@ -50,18 +54,20 @@ export default async function ClientsPage({
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold dark:text-white text-gray-800 italic">
-            Реестр клиентов SmartLedger
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Всего записей: {result.totalCount}
-          </p>
-        </div>
-        <div className="w-full md:max-w-md">
-          <SearchInput />
+    <div className="px-6 flex flex-col overflow-x-hidden">
+      <div className=" z-20 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm py-4  px-6 border-b border-gray-200 dark:border-gray-800 transition-colors">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold dark:text-white text-gray-800 italic">
+              Реестр клиентов SmartLedger
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Всего записей: {result.totalCount}
+            </p>
+          </div>
+          <div className="w-full md:max-w-md">
+            <SearchInput />
+          </div>
         </div>
       </div>
 
@@ -72,6 +78,7 @@ export default async function ClientsPage({
               <TableHeadCell>Клиент / БИН</TableHeadCell>
               <TableHeadCell>Налоговый режим</TableHeadCell>
               <TableHeadCell>НДС Статус</TableHeadCell>
+              <TableHeadCell>Оборот (Год)</TableHeadCell>
               <TableHeadCell>Риск</TableHeadCell>
               <TableHeadCell>Долг (Хвосты)</TableHeadCell>
               <TableHeadCell>ЭЦП (дн.)</TableHeadCell>
@@ -88,14 +95,17 @@ export default async function ClientsPage({
                 className="bg-white dark:border-gray-700 dark:bg-gray-800"
               >
                 <TableCell className="whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-gray-900 dark:text-white">
+                  <Link
+                    href={`/clients/${client.id}`}
+                    className="flex flex-col hover:text-blue-600 transition-colors group"
+                  >
+                    <span className="font-bold text-gray-900 dark:text-white group-hover:underline">
                       {client.lastName} {client.firstName}
                     </span>
                     <span className="text-xs text-gray-500">
                       {client.binIin}
                     </span>
-                  </div>
+                  </Link>
                 </TableCell>
                 <TableCell className="text-xs">{client.taxRegime}</TableCell>
                 <TableCell>
@@ -106,6 +116,15 @@ export default async function ClientsPage({
                   >
                     {client.ndsStatus === "Плательщик НДС" ? "НДС" : "Без НДС"}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-xs font-medium">
+                  {(
+                    client.transactions?.reduce(
+                      (sum, t) => sum + (t.ndsBaseAmount || 0),
+                      0,
+                    ) || 0
+                  ).toLocaleString()}{" "}
+                  ₸
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -141,7 +160,7 @@ export default async function ClientsPage({
                       {client.daysUntilEcpExpires} дн.
                     </span>
                     <span className="text-gray-400 text-[10px]">
-                      {new Date(client.ecpExpiryDate).toLocaleDateString()}
+                      {formatDate(client.ecpExpiryDate)}
                     </span>
                   </div>
                 </TableCell>
@@ -149,18 +168,30 @@ export default async function ClientsPage({
                   {client.responsiblePersonContact}
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-3">
+                  <div className="flex gap-4">
+                    {/* Кнопка быстрого перехода к графикам (то, что мы делали раньше) */}
+                    <Tooltip content="Посмотреть графики и ИИ-аналитику">
+                      <Link
+                        href={`/dashboard/${client.id}`}
+                        className="font-medium text-blue-600 hover:underline dark:text-blue-500 flex items-center gap-1"
+                      >
+                        <HiTrendingUp /> Анализ
+                      </Link>
+                    </Tooltip>
+
+                    {/* Ссылка на полное досье (дубликат клика по имени) */}
                     <Link
-                      href={`/dashboard/${client.id}`}
-                      className="font-medium text-blue-600 hover:underline dark:text-blue-500"
+                      href={`/clients/${client.id}`}
+                      className="font-medium text-emerald-600 hover:underline dark:text-emerald-500 flex items-center gap-1"
                     >
-                      Анализ ИИ
+                      <HiIdentification /> Досье
                     </Link>
+
                     <Link
                       href={`/clients/edit/${client.id}`}
                       className="font-medium text-gray-400 hover:text-gray-600"
                     >
-                      Карточка
+                      Править
                     </Link>
                   </div>
                 </TableCell>

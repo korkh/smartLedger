@@ -20,7 +20,10 @@ namespace Application.Core
                     dest => dest.ClientName,
                     opt => opt.MapFrom(src => $"{src.Client.FirstName} {src.Client.LastName}")
                 )
-                .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => src.Service.Name))
+                .ForMember(
+                    dest => dest.ServiceTypeName,
+                    opt => opt.MapFrom(src => src.Service.Name)
+                )
                 .ReverseMap();
 
             // 3. Dashboard Mapping

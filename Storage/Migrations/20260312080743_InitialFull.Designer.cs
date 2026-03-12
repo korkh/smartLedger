@@ -11,7 +11,7 @@ using Storage;
 namespace Storage.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260311161201_InitialFull")]
+    [Migration("20260312080743_InitialFull")]
     partial class InitialFull
     {
         /// <inheritdoc />
@@ -238,21 +238,21 @@ namespace Storage.Migrations
                         new
                         {
                             Id = 1,
-                            ConcurrencyStamp = "80047ced-0b99-4c9b-b7eb-740f77a1c00d",
+                            ConcurrencyStamp = "beb7a6ac-1ea1-462c-a35b-a9dcefb72a60",
                             Name = "Junior_Accountant",
                             NormalizedName = "JUNIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 2,
-                            ConcurrencyStamp = "251e0fe2-8d33-444a-92fc-ce896584c294",
+                            ConcurrencyStamp = "28b61f49-acaf-4b68-a9bd-925df18c8362",
                             Name = "Senior_Accountant",
                             NormalizedName = "SENIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 3,
-                            ConcurrencyStamp = "27147b9c-8179-461e-bfe5-010b70913f86",
+                            ConcurrencyStamp = "f2f0e4ea-7e1e-41a9-8709-677ce95bb7bf",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });
@@ -299,8 +299,8 @@ namespace Storage.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ServiceType")
-                        .HasColumnType("TEXT");
+                    b.Property<int>("ServiceType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("StandardTimeMinutes")
                         .HasColumnType("INTEGER");
@@ -317,9 +317,6 @@ namespace Storage.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ActualTimeMinutes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("AnnualTaxReports")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("BillableTimeMinutes")
@@ -356,9 +353,6 @@ namespace Storage.Migrations
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("MonthlyTaxReports")
-                        .HasColumnType("INTEGER");
-
                     b.Property<decimal>("NdsBaseAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -368,19 +362,10 @@ namespace Storage.Migrations
                     b.Property<string>("PerformerName")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("QuarterlyTaxReports")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SemiAnnualTaxReports")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("ServiceId")
+                    b.Property<Guid?>("ServiceId")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ServiceType")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("StatReports")
+                    b.Property<int>("ServiceType")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
@@ -654,9 +639,7 @@ namespace Storage.Migrations
 
                     b.HasOne("Domain.Entities.ServiceReference", "Service")
                         .WithMany("Transactions")
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ServiceId");
 
                     b.Navigation("Client");
 

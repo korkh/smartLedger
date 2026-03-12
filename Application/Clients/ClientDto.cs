@@ -25,6 +25,7 @@ namespace Application.Clients
 
         // Лист "Клиенты", колонка "Степень налогового риска"
         public string TaxRiskLevel { get; set; }
+        public decimal TotalDebt { get; set; }
 
         public DateTime? EcpExpiryDate { get; set; }
 

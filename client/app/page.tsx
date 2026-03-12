@@ -1,13 +1,14 @@
 "use client";
 import { Button } from "flowbite-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Header } from "./components/layout/Header";
 
 export default function Home() {
+  const { data: session } = useSession();
+
   return (
-    <main>
-      <Header />
-      <section className="bg-white dark:bg-gray-900">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <section>
         <div className="py-8 px-4 mx-auto max-w-7xl text-center lg:py-16">
           <h1 className="mb-4 text-4xl font-extrabold tracking-tight leading-none text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
             Управляйте бухгалтерией с умом
@@ -17,8 +18,13 @@ export default function Home() {
             помощью ИИ для вашего бизнеса в Норвегии.
           </p>
           <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0">
-            <Button size="xl" as={Link} href="/login" className="mr-3">
-              Начать работу
+            <Button
+              size="xl"
+              as={Link}
+              href={session ? "/dashboard" : "/login"}
+              className="mr-3"
+            >
+              {session ? "Перейти в Дашборд" : "Начать работу"}
             </Button>
             <Button size="xl" color="light">
               Узнать больше

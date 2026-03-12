@@ -10,7 +10,7 @@ namespace Application.Common.Helpers.Validators
             // 1. Базовая проверка даты и услуги
             RuleFor(x => x.Date).NotEmpty().WithMessage("Дата транзакции обязательна.");
 
-            RuleFor(x => x.ServiceName).NotEmpty().WithMessage("Название услуги обязательно.");
+            RuleFor(x => x.ServiceTypeName).NotEmpty().WithMessage("Название услуги обязательно.");
 
             // 2. Валидация количества операций
             RuleFor(x => x.OperationsCount)

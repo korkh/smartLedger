@@ -1,9 +1,9 @@
 import { fetchWrapper } from "@/lib/fetchWrapper";
 import { DashboardData } from "@/Types";
+import { format, parseISO } from "date-fns";
 import { useEffect } from "react";
 import { useDashboardStore } from "./useDashboardStore";
 
-// Создаем интерфейс для фильтров
 export interface DashboardFilters {
   month?: number;
   year?: number;
@@ -21,21 +21,38 @@ export const useDashboard = (clientId: string, filters: DashboardFilters) => {
 
       setLoading(true);
       try {
-        // Формируем query-строку на основе фильтров
         const params = new URLSearchParams();
+        const DATE_FORMAT = "yyyy-MM-dd";
 
-        if (filters.periodType === "month") {
-          params.append("month", filters.month?.toString() || "");
-          params.append("year", filters.year?.toString() || "");
-        } else if (filters.periodType === "custom") {
-          params.append("fromDate", filters.fromDate || "");
-          params.append("toDate", filters.toDate || "");
-        } else if (filters.periodType === "today") {
-          const today = new Date().toISOString().split("T")[0];
-          params.append("fromDate", today);
-          params.append("toDate", today);
-        } else if (filters.periodType === "all") {
-          params.append("all", "true");
+        switch (filters.periodType) {
+          case "month":
+            // Убеждаемся, что не передаем undefined в строку
+            if (filters.month) params.append("month", filters.month.toString());
+            if (filters.year) params.append("year", filters.year.toString());
+            break;
+
+          case "today":
+            const today = new Date();
+            const todayStr = format(today, DATE_FORMAT);
+            params.append("fromDate", todayStr);
+            params.append("toDate", todayStr);
+            break;
+
+          case "custom":
+            // Используем parseISO, чтобы избежать смещения часовых поясов
+            if (filters.fromDate) {
+              const dFrom = parseISO(filters.fromDate);
+              params.append("fromDate", format(dFrom, DATE_FORMAT));
+            }
+            if (filters.toDate) {
+              const dTo = parseISO(filters.toDate);
+              params.append("toDate", format(dTo, DATE_FORMAT));
+            }
+            break;
+
+          case "all":
+            params.append("all", "true");
+            break;
         }
 
         const queryString = params.toString();
@@ -54,7 +71,6 @@ export const useDashboard = (clientId: string, filters: DashboardFilters) => {
     };
 
     fetchDashboard();
-    // Хук перезапустится, если изменится ID клиента или любой из фильтров
   }, [
     clientId,
     filters.periodType,

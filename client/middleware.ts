@@ -1,20 +1,23 @@
 // middleware.ts
 import { auth } from "@/auth";
+import { NextResponse } from "next/server";
 
 export default auth((req) => {
-  // req.auth содержит сессию.
-  // Если нужно добавить кастомную логику редиректа, можно сделать это здесь.
   const isLoggedIn = !!req.auth;
-  const isProtectedRoute =
-    req.nextUrl.pathname.startsWith("/clients") ||
-    req.nextUrl.pathname.startsWith("/dashboard");
+  const { nextUrl } = req;
 
-  if (isProtectedRoute && !isLoggedIn) {
-    return Response.redirect(new URL("/login", req.nextUrl));
-  }
+  const isProtectedRoute =
+    nextUrl.pathname.startsWith("/clients") ||
+    nextUrl.pathname.startsWith("/dashboard");
+
+  // if (isProtectedRoute && !isLoggedIn) {
+  //   return NextResponse.redirect(new URL("/login", nextUrl));
+  // }
+
+  return NextResponse.next();
 });
 
 export const config = {
-  // Массив путей, для которых будет работать middleware
-  matcher: ["/clients/:path*", "/dashboard/:path*"],
+  // Исключаем внутренние запросы Next.js, картинки и статику
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

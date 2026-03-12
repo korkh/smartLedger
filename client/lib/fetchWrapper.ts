@@ -55,12 +55,14 @@ export async function del(url: string) {
 async function getHeaders(): Promise<Headers> {
   let session;
 
-  // Проверяем, где выполняется код
   if (typeof window === "undefined") {
-    // Мы на СЕРВЕРЕ
+    // Сервер (Server Components / Actions)
     session = await auth();
   } else {
-    // Мы на КЛИЕНТЕ (в браузере)
+    // Клиент
+    // getSession() делает FETCH. Это медленно.
+    // Если вы вызываете это из React-компонента, лучше использовать useSession()
+    // Но для обертки оставляем так, просто имейте в виду.
     session = await getSession();
   }
 
@@ -69,6 +71,8 @@ async function getHeaders(): Promise<Headers> {
 
   if (session?.accessToken) {
     headers.set("Authorization", `Bearer ${session.accessToken}`);
+  } else if (typeof window !== "undefined") {
+    console.warn("Token not found in client session");
   }
 
   return headers;

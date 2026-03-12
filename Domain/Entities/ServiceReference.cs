@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Domain.Constants;
 using Domain.Entities.Common;
 
 namespace Domain.Entities
@@ -26,7 +27,7 @@ namespace Domain.Entities
 
         /// Тип услуги для счетчиков в Dashboard:
         /// "Stat", "TaxMonthly", "TaxQuarterly", "TaxSemiAnnual", "TaxAnnual", "Personnel", "Common"
-        public string ServiceType { get; set; }
+        public ServiceType ServiceType { get; set; }
 
         /// Если true, то эта услуга считается как "Разовая" (Хвосты),
         /// а не входит в основной лимит операций тарифа.
