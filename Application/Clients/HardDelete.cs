@@ -28,7 +28,7 @@ namespace Application.Clients
             {
                 if (!_userAccessor.IsAdmin())
                     return Result<Unit>.Failure(
-                        "Только администратор может физически удалять записи."
+                        "Критическая операция: Только администратор может физически удалять записи."
                     );
 
                 // .IgnoreQueryFilters() позволяет найти клиента, даже если он уже в "корзине"
@@ -39,7 +39,7 @@ namespace Application.Clients
 
                 return affected > 0
                     ? Result<Unit>.Success(Unit.Value)
-                    : Result<Unit>.Failure("Клиент не найден");
+                    : Result<Unit>.Failure("Клиент не найден в базе данных.");
             }
         }
     }

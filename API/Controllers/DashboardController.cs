@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
-    [Authorize(Roles = "Senior_Accountant, Admin")]
+    [Authorize(Policy = "Level3Only")]
     public class DashboardController : BaseApiController
     {
         private readonly IaiAnalysisService _aiService;

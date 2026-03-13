@@ -13,6 +13,18 @@ namespace Application.Core
             CreateMap<Client, ClientDto>()
                 .ReverseMap()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<ClientDto, Client>()
+                // Не обновляем эти поля, если они пришли пустыми (защита данных 3-го уровня)
+                .ForMember(
+                    dest => dest.StrategicNotes,
+                    opt => opt.Condition(src => src.StrategicNotes != null)
+                )
+                .ForMember(
+                    dest => dest.PersonalInfo,
+                    opt => opt.Condition(src => src.PersonalInfo != null)
+                )
+                // Остальные поля
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             // 2. Transaction Mapping
             CreateMap<Transaction, TransactionDto>()

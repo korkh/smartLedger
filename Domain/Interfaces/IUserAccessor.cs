@@ -4,5 +4,7 @@ namespace Domain.Interfaces
     {
         string GetUserName();
         bool IsAdmin();
+        int GetUserId();
+        bool IsSeniorAccountant();
     }
 }

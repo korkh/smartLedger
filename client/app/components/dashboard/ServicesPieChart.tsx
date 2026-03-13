@@ -53,7 +53,7 @@ const renderCustomizedLabel = ({
 
 export default function ServicesPieChart({ data }: Props) {
   return (
-    <div className="h-75 w-full">
+    <div className="h-75">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie

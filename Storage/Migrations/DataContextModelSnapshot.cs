@@ -235,21 +235,21 @@ namespace Storage.Migrations
                         new
                         {
                             Id = 1,
-                            ConcurrencyStamp = "beb7a6ac-1ea1-462c-a35b-a9dcefb72a60",
+                            ConcurrencyStamp = "6d561b7f-e8e3-4a64-87a5-5d005caa3c52",
                             Name = "Junior_Accountant",
                             NormalizedName = "JUNIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 2,
-                            ConcurrencyStamp = "28b61f49-acaf-4b68-a9bd-925df18c8362",
+                            ConcurrencyStamp = "f047cd87-7194-4715-b138-b90fe2b98a69",
                             Name = "Senior_Accountant",
                             NormalizedName = "SENIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 3,
-                            ConcurrencyStamp = "f2f0e4ea-7e1e-41a9-8709-677ce95bb7bf",
+                            ConcurrencyStamp = "51156d69-7a01-4756-98b1-2544c4e89820",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });

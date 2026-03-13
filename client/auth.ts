@@ -43,6 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: credentials.email as string,
               accessToken: user.accessToken,
               userName: user.userName,
+              role: user.role,
             };
           } else {
             // Если это текст (например "Invalid Email"), логируем его и возвращаем null
@@ -66,6 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.accessToken = (user as any).accessToken;
         token.username = (user as any).userName;
+        token.role = (user as any).role; // Сохраняем роль в токене NextAuth
       }
       return token;
     },
@@ -73,6 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token && session.user) {
         session.accessToken = token.accessToken as string;
         session.user.username = token.username as string;
+        (session.user as any).role = token.role; // Прокидываем в сессию фронтенда
       }
       return session;
     },

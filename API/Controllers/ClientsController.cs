@@ -9,7 +9,7 @@ namespace API.Controllers
     {
         private readonly IaiAnalysisService _aiService = aiService;
 
-        [Authorize]
+        [Authorize(Policy = "Level1Only")]
         [HttpGet]
         public async Task<IActionResult> GetClients([FromQuery] ClientParams clientParams)
         {
@@ -18,14 +18,44 @@ namespace API.Controllers
             );
         }
 
-        [Authorize]
+        [Authorize(Policy = "Level1Only")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetClient(Guid id)
         {
-            return HandleResult(await Mediator.Send(new Details.Query { Id = id }));
+            var result = await Mediator.Send(new Details.Query { Id = id });
+
+            if (result.IsSuccess && result.Value != null)
+            {
+                var client = result.Value;
+
+                // 1. Если это Junior (Level 1) — скрываем ВСЁ (пароли и заметки 2/3 уровней)
+                if (!User.IsInRole("Senior_Accountant") && !User.IsInRole("Admin"))
+                {
+                    client.EcpPassword = "********";
+                    client.EsfPassword = "********";
+                    client.BankingPasswords = "********";
+                    client.ManagerNotes = null; // Заметки 2 уровня
+                    client.StrategicNotes = null;
+                    client.PersonalInfo = null;
+                }
+                // 2. Если это Senior (Level 2), но НЕ Admin
+                else if (User.IsInRole("Senior_Accountant") && !User.IsInRole("Admin"))
+                {
+                    // Пароли ОСТАВЛЯЕМ (они есть в файле 2 уровня)
+
+                    // Скрываем только то, что появляется исключительно в 3 уровне:
+                    client.StrategicNotes = null;
+                    client.PersonalInfo = null;
+                }
+
+                // 3. Если Admin (Level 3) — ничего не скрываем, видит всё.
+            }
+
+            return HandleResult(result);
         }
 
         // 2. Метод для ИИ — вызывается по требованию
+        [Authorize(Policy = "Level2Only")]
         [HttpPost("{id}/analyze")]
         public async Task<IActionResult> GetAiInsightForClient(Guid id, [FromBody] ClientDto client)
         {
@@ -61,11 +91,20 @@ namespace API.Controllers
             return HandleResult(await Mediator.Send(new Edit.Command { Client = client }));
         }
 
-        [Authorize(Policy = "Level3Only")]
-        [HttpDelete("{id}")]
+        [Authorize(Policy = "Level2Only")]
+        [HttpDelete("{id}")] // DELETE /api/clients/{id}
         public async Task<IActionResult> DeleteClient(Guid id)
         {
             return HandleResult(await Mediator.Send(new Delete.Command { Id = id }));
+        }
+
+        /// Окончательное удаление из базы (Hard Delete).
+        /// Доступно ТОЛЬКО Уровню 3 (Admin).
+        [Authorize(Policy = "Level3Only")]
+        [HttpDelete("{id}/hard")] // DELETE /api/clients/{id}/hard
+        public async Task<IActionResult> HardDeleteClient(Guid id)
+        {
+            return HandleResult(await Mediator.Send(new HardDelete.Command { Id = id }));
         }
     }
 }

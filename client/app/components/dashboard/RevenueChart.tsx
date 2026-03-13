@@ -20,7 +20,7 @@ export default function RevenueChart({ data }: Props) {
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart
         data={data}
-        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
       >
         <defs>
           <linearGradient id="colorBase" x1="0" y1="0" x2="0" y2="1">

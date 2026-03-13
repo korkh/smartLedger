@@ -33,5 +33,9 @@ namespace Storage
         public string GetUserName() => "System_Migration";
 
         public bool IsAdmin() => true;
+
+        public bool IsSeniorAccountant() => true;
+
+        public int GetUserId() => 0;
     }
 }

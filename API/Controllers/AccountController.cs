@@ -227,12 +227,16 @@ namespace API.Controllers
         //Method to create new user
         private async Task<UserDto> CreateUserObject(User user)
         {
+            // Получаем роли пользователя
+            var roles = await _userManager.GetRolesAsync(user);
+
             return new UserDto
             {
                 DisplayedName = user.DisplayedName,
                 Image = user?.Photos?.FirstOrDefault(x => x.IsMain)?.Url,
                 AccessToken = await _tokenService.CreateToken(user),
                 UserName = user.UserName,
+                Role = roles.FirstOrDefault(),
             };
         }
     }

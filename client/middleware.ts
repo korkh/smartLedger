@@ -8,11 +8,13 @@ export default auth((req) => {
 
   const isProtectedRoute =
     nextUrl.pathname.startsWith("/clients") ||
-    nextUrl.pathname.startsWith("/dashboard");
+    nextUrl.pathname.startsWith("/dashboard") ||
+    nextUrl.pathname.startsWith("/services") ||
+    nextUrl.pathname.startsWith("/transactions");
 
-  // if (isProtectedRoute && !isLoggedIn) {
-  //   return NextResponse.redirect(new URL("/login", nextUrl));
-  // }
+  if (isProtectedRoute && !isLoggedIn) {
+    return NextResponse.redirect(new URL("/login", nextUrl));
+  }
 
   return NextResponse.next();
 });

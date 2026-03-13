@@ -15,17 +15,28 @@ export default function AppPagination({
   const searchParams = useSearchParams();
 
   const onPageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams);
+    // Не даем перейти за границы
+    if (page < 1 || page > totalPages) return;
+
+    const params = new URLSearchParams(searchParams.toString());
     params.set("pageNumber", page.toString());
+
+    // Используем router.push для обновления URL
     router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
-    <Pagination
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onPageChange={onPageChange}
-      showIcons
-    />
+    <div className="flex overflow-x-auto justify-center">
+      <Pagination
+        layout="pagination"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        showIcons={true} // Отображает иконки < и >
+        previousLabel="Назад"
+        nextLabel="Вперед"
+        className="text-sm md:text-base"
+      />
+    </div>
   );
 }

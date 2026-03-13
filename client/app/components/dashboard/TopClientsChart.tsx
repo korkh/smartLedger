@@ -19,7 +19,7 @@ interface Props {
 export default function TopClientsChart({ title, data, color }: Props) {
   return (
     <div className="h-full w-full">
-      <h3 className="text-sm font-bold mb-4 dark:text-gray-300">{title}</h3>
+      <h3 className="text-lg font-bold mb-4 dark:text-gray-300">{title}</h3>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={data}

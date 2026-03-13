@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { formatDate } from "@/lib/formatDate";
 import { Client } from "@/Types";
 import {
@@ -14,6 +15,7 @@ import Link from "next/link";
 import { HiIdentification, HiTrendingUp } from "react-icons/hi";
 import { getData } from "../actions/clientsActions";
 import AppPagination from "../components/AppPagination";
+import DeleteClientButton from "../components/client/DeleteClientButton";
 import SearchInput from "../components/SearchInput";
 
 export default async function ClientsPage({
@@ -26,6 +28,13 @@ export default async function ClientsPage({
     taxRiskLevel?: string;
   }>;
 }) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+
+  if (!role) {
+    return <div className="p-6 text-center">Войдите в систему</div>;
+  }
+
   const params = await searchParams;
 
   const urlParams = new URLSearchParams({
@@ -168,31 +177,62 @@ export default async function ClientsPage({
                   {client.responsiblePersonContact}
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-4">
-                    {/* Кнопка быстрого перехода к графикам (то, что мы делали раньше) */}
-                    <Tooltip content="Посмотреть графики и ИИ-аналитику">
+                  <div className="flex items-center gap-4">
+                    {/* 1. Аналитика — ТОЛЬКО Admin (соответствует DashboardController [Authorize(Policy = "Level3Only")]) */}
+                    {role === "Admin" && (
+                      <Tooltip content="Аналитика">
+                        <Link
+                          href={`/dashboard/${client.id}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          <HiTrendingUp className="h-5 w-5" />
+                        </Link>
+                      </Tooltip>
+                    )}
+
+                    {/* 2. Досье — ВСЕ (соответствует [Authorize(Policy = "Level1Only")]) */}
+                    <Tooltip content="Досье">
                       <Link
-                        href={`/dashboard/${client.id}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-500 flex items-center gap-1"
+                        href={`/clients/${client.id}`}
+                        className="text-emerald-600 hover:underline"
                       >
-                        <HiTrendingUp /> Анализ
+                        <HiIdentification className="h-5 w-5" />
                       </Link>
                     </Tooltip>
 
-                    {/* Ссылка на полное досье (дубликат клика по имени) */}
-                    <Link
-                      href={`/clients/${client.id}`}
-                      className="font-medium text-emerald-600 hover:underline dark:text-emerald-500 flex items-center gap-1"
-                    >
-                      <HiIdentification /> Досье
-                    </Link>
+                    {/* 3. Править и Удалить — Senior и Admin (соответствует [Authorize(Policy = "Level2Only")]) */}
+                    {(role === "Senior_Accountant" || role === "Admin") && (
+                      <>
+                        <Tooltip content="Править">
+                          <Link
+                            href={`/clients/edit/${client.id}`}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          </Link>
+                        </Tooltip>
 
-                    <Link
-                      href={`/clients/edit/${client.id}`}
-                      className="font-medium text-gray-400 hover:text-gray-600"
-                    >
-                      Править
-                    </Link>
+                        <Tooltip content="Удалить">
+                          <DeleteClientButton
+                            clientId={client.id}
+                            clientName={`${client.firstName} ${client.lastName}`}
+                            isAdmin={role === "Admin"}
+                          />
+                        </Tooltip>
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

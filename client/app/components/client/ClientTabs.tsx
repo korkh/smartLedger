@@ -17,7 +17,15 @@ import {
 import { HiCash, HiClipboardList, HiUserCircle } from "react-icons/hi";
 import AiInsightCard from "../AiInsightCard";
 
-export default function ClientTabs({ client }: { client: Client }) {
+export default function ClientTabs({
+  client,
+  role,
+}: {
+  client: Client;
+  role: string;
+}) {
+  const isAdmin = role === "Admin";
+  const isSenior = role === "Senior_Accountant" || isAdmin;
   return (
     <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex justify-between items-start">
@@ -32,7 +40,8 @@ export default function ClientTabs({ client }: { client: Client }) {
         </Badge>
       </div>
 
-      <AiInsightCard mode="client" externalData={client} />
+      {/* 1. AI Insight доступен только Level 2+ (согласно бэкенду [Authorize(Policy = "Level2Only")]) */}
+      {isSenior && <AiInsightCard mode="client" externalData={client} />}
 
       <Tabs aria-label="Client details" variant="underline">
         {/* Tab 1: Dossier */}
@@ -55,7 +64,7 @@ export default function ClientTabs({ client }: { client: Client }) {
                 />
               </div>
             </Card>
-
+            {/* 2. Доступы: Junior видит заблюренные звезды, Senior видит пароли */}
             <Card>
               <h5 className="text-xl font-bold pb-2 border-b dark:text-white">
                 Доступы и Безопасность
@@ -82,37 +91,49 @@ export default function ClientTabs({ client }: { client: Client }) {
               </div>
             </Card>
 
-            <Card className="md:col-span-2">
-              <h5 className="text-xl font-bold pb-2 border-b dark:text-white">
-                Заметки
-              </h5>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div>
-                  <h6 className="font-bold text-blue-600 mb-2">
-                    Стратегические заметки
-                  </h6>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {client.strategicNotes || "Пусто"}
-                  </p>
+            {/* 3. Заметки: Скрываем заголовки, если данных нет (бэкенд присылает null) */}
+            {(client.strategicNotes ||
+              client.personalInfo ||
+              client.managerNotes) && (
+              <Card className="md:col-span-2">
+                <h5 className="text-xl font-bold pb-2 border-b dark:text-white">
+                  Заметки
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  {/* Стратегические заметки (Level 3 Only) */}
+                  {client.strategicNotes && (
+                    <div>
+                      <h6 className="font-bold text-blue-600 mb-2">
+                        Стратегия
+                      </h6>
+                      <p className="text-sm text-gray-600">
+                        {client.strategicNotes}
+                      </p>
+                    </div>
+                  )}
+                  {/* Личная информация (Level 3 Only) */}
+                  {client.personalInfo && (
+                    <div>
+                      <h6 className="font-bold text-purple-600 mb-2">Личное</h6>
+                      <p className="text-sm text-gray-600">
+                        {client.personalInfo}
+                      </p>
+                    </div>
+                  )}
+                  {/* Заметки менеджера (Level 2+) */}
+                  {client.managerNotes && (
+                    <div className="md:col-span-2">
+                      <h6 className="font-bold text-orange-600 mb-2">
+                        Заметки менеджера
+                      </h6>
+                      <p className="text-sm text-gray-600">
+                        {client.managerNotes}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h6 className="font-bold text-orange-600 mb-2">
-                    Личная информация
-                  </h6>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {client.personalInfo || "Пусто"}
-                  </p>
-                </div>
-                <div>
-                  <h6 className="font-bold text-orange-600 mb-2">
-                    Заметки менеджера
-                  </h6>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {client.managerNotes || "Пусто"}
-                  </p>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            )}
           </div>
         </TabItem>
 
@@ -218,12 +239,13 @@ function InfoRow({
   value: string | null | undefined;
   isSecret?: boolean;
 }) {
+  const shouldBlur = isSecret && value !== "********";
   return (
     <div className="flex justify-between border-b border-gray-100 dark:border-gray-700 py-2">
       <span className="text-sm text-gray-500">{label}:</span>
       <span
         className={`text-sm font-medium ${
-          isSecret
+          shouldBlur
             ? "bg-gray-200 dark:bg-gray-700 px-2 rounded blur-sm hover:blur-none transition-all cursor-pointer"
             : "dark:text-white"
         }`}

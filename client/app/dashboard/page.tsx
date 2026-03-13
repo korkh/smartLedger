@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { Client } from "@/Types";
 import { HiClock, HiExclamationCircle, HiUsers } from "react-icons/hi";
 import { getData } from "../actions/clientsActions";
@@ -11,7 +12,21 @@ import StatCard from "../components/dashboard/StatCard";
 import TopClientsChart from "../components/dashboard/TopClientsChart";
 
 export default async function DashboardPage() {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+
+  if (role !== "Admin") {
+    return (
+      <div className="p-6 text-center">
+        <h1 className="text-2xl font-bold text-red-600">Доступ ограничен</h1>
+        <p className="text-gray-600">
+          У вас недостаточно прав для просмотра аналитики уровня 3.
+        </p>
+      </div>
+    );
+  }
   const result = await getData("?pageSize=1000");
+
   if (!result) return <div>Ошибка загрузки данных</div>;
   const clients: Client[] = result.items || [];
 
@@ -94,12 +109,12 @@ export default async function DashboardPage() {
           <h3 className="text-lg font-bold mb-4 dark:text-white">
             Налоговые риски (ИИ)
           </h3>
-          <div className="h-87.5">
+          <div className="h-75">
             <RiskDistribution data={riskDistribution} />
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-bold mb-4 dark:text-gray-300">
+          <h3 className="text-lg font-bold mb-4 dark:text-gray-300">
             Статус оплат
           </h3>
           <div className="h-75">
@@ -107,7 +122,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         {/* Динамика выручки (RevenueChart) */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="lg:col-span-3 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-bold mb-4 dark:text-white">
             Сумма по тарифам vs Доп. услуги
           </h3>

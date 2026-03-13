@@ -53,6 +53,14 @@ namespace Application.Clients
                     _logger.LogWarning("Клиент с ID {Id} не был найден", clientId);
                     return null;
                 }
+                // 2. РУЧНАЯ ЗАЩИТА (на случай, если маппер пропустит null)
+                // Если в запросе пришел null для полей 3-го уровня,
+                // мы подставляем в запрос значения, которые уже лежат в базе.
+                if (request.Client.StrategicNotes == null)
+                    request.Client.StrategicNotes = client.StrategicNotes;
+
+                if (request.Client.PersonalInfo == null)
+                    request.Client.PersonalInfo = client.PersonalInfo;
 
                 // 3. Маппинг (Обновляем только поля из DTO)
                 _mapper.Map(request.Client, client);
@@ -60,7 +68,8 @@ namespace Application.Clients
                 // 4. Сохранение с обработкой ошибок
                 try
                 {
-                    // Передаем cancellationToken в SaveChangesAsync
+                    // Если ничего не изменилось (например, Level 2 просто открыл и закрыл карточку),
+                    // SaveChangesAsync вернет 0.
                     var result = await _context.SaveChangesAsync(cancellationToken) > 0;
 
                     if (!result)

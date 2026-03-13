@@ -81,38 +81,14 @@ namespace API.Extensions
                     };
                 });
 
-            /**
-
-                * AUTHORIZATION
-
-            **/
-
-            services.AddAuthorization(options =>
-            {
-                options.AddPolicy(
+            services
+                .AddAuthorizationBuilder()
+                .AddPolicy(
                     "Level1Only",
-                    policy =>
-                    {
-                        policy.RequireRole("Junior_Accountant");
-                    }
-                );
-
-                options.AddPolicy(
-                    "Level2Only",
-                    policy =>
-                    {
-                        policy.RequireRole("Senior_Accountant");
-                    }
-                );
-
-                options.AddPolicy(
-                    "Level3Only",
-                    policy =>
-                    {
-                        policy.RequireRole("Admin");
-                    }
-                );
-            });
+                    policy => policy.RequireRole("Junior_Accountant", "Senior_Accountant", "Admin")
+                )
+                .AddPolicy("Level2Only", policy => policy.RequireRole("Senior_Accountant", "Admin"))
+                .AddPolicy("Level3Only", policy => policy.RequireRole("Admin"));
 
             services.AddScoped<TokenService>();
 

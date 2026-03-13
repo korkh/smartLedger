@@ -365,9 +365,9 @@ namespace Storage.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { 1, "beb7a6ac-1ea1-462c-a35b-a9dcefb72a60", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
-                    { 2, "28b61f49-acaf-4b68-a9bd-925df18c8362", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
-                    { 3, "f2f0e4ea-7e1e-41a9-8709-677ce95bb7bf", "Admin", "ADMIN" }
+                    { 1, "6d561b7f-e8e3-4a64-87a5-5d005caa3c52", "Junior_Accountant", "JUNIOR_ACCOUNTANT" },
+                    { 2, "f047cd87-7194-4715-b138-b90fe2b98a69", "Senior_Accountant", "SENIOR_ACCOUNTANT" },
+                    { 3, "51156d69-7a01-4756-98b1-2544c4e89820", "Admin", "ADMIN" }
                 });
 
             migrationBuilder.CreateIndex(

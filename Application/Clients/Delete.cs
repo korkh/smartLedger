@@ -1,4 +1,5 @@
 using Application.Core;
+using Domain.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,22 +14,29 @@ namespace Application.Clients
             public Guid Id { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command, Result<Unit>>
+        public class Handler(
+            DataContext context,
+            ILogger<Delete> logger,
+            IUserAccessor userAccessor
+        ) : IRequestHandler<Command, Result<Unit>>
         {
-            private readonly DataContext _context;
-            private readonly ILogger<Delete> _logger;
-
-            public Handler(DataContext context, ILogger<Delete> logger)
-            {
-                _context = context;
-                _logger = logger;
-            }
+            private readonly DataContext _context = context;
+            private readonly ILogger<Delete> _logger = logger;
+            private readonly IUserAccessor _userAccessor = userAccessor;
 
             public async Task<Result<Unit>> Handle(
                 Command request,
                 CancellationToken cancellationToken
             )
             {
+                // Проверка: только Senior (Уровень 2) или Admin (Уровень 3)
+                // Если Junior попытается вызвать, получит отказ
+                if (!_userAccessor.IsAdmin() && _userAccessor.IsSeniorAccountant())
+                {
+                    return Result<Unit>.Failure(
+                        "Недостаточно прав для перемещения клиента в архив."
+                    );
+                }
                 _logger.LogInformation("Попытка удаления клиента с ID: {Id}", request.Id);
 
                 try
@@ -45,7 +53,7 @@ namespace Application.Clients
                     }
 
                     // 2. Проверка наличия транзакций
-                    if (client.Transactions != null && client.Transactions.Any())
+                    if (client.Transactions != null && client.Transactions.Count != 0)
                     {
                         _logger.LogWarning(
                             "Отказ в удалении: у клиента {Id} есть {Count} транзакций",

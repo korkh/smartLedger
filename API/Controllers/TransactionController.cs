@@ -6,7 +6,7 @@ namespace API.Controllers
 {
     public class TransactionsController : BaseApiController
     {
-        [Authorize]
+        [Authorize(Policy = "Level1Only")]
         [HttpGet]
         public async Task<IActionResult> GetTransactions(
             [FromQuery] TransactionParams transactionParams
@@ -18,7 +18,7 @@ namespace API.Controllers
             );
         }
 
-        [Authorize]
+        [Authorize(Policy = "Level1Only")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTransaction(Guid id)
         {
@@ -44,9 +44,16 @@ namespace API.Controllers
             );
         }
 
+        [Authorize(Policy = "Level2Only")]
+        [HttpPost("{id}/soft-delete")] // Используем POST, так как это действие/команда
+        public async Task<IActionResult> SoftDeleteTransaction(Guid id)
+        {
+            return HandleResult(await Mediator.Send(new SoftDelete.Command { Id = id }));
+        }
+
         [Authorize(Policy = "Level3Only")]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTransaction(Guid id)
+        public async Task<IActionResult> HardDeleteTransaction(Guid id)
         {
             return HandleResult(await Mediator.Send(new Delete.Command { Id = id }));
         }

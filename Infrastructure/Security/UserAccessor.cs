@@ -28,5 +28,10 @@ namespace Infrastructure.Security
         {
             return _httpContextAccessor.HttpContext?.User?.IsInRole("Admin") ?? false;
         }
+
+        public bool IsSeniorAccountant()
+        {
+            return _httpContextAccessor.HttpContext?.User?.IsInRole("Senior_Accountant") ?? false;
+        }
     }
 }
