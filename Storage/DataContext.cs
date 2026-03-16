@@ -13,6 +13,8 @@ namespace Storage
         private readonly IUserAccessor _userAccessor = userAccessor;
 
         public DbSet<Client> Clients { get; set; }
+        public DbSet<ClientInternal> ClientInternals { get; set; }
+        public DbSet<ClientSensitive> ClientSensitives { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<ServiceReference> ServiceReferences { get; set; }
         public DbSet<ClientTariff> ClientTariffs { get; set; }

@@ -1,6 +1,6 @@
 namespace Application.Clients
 {
-    public class ClientDto
+    public class ClientLevel1Dto
     {
         public Guid Id { get; set; }
         public string FirstName { get; set; }
@@ -13,17 +13,6 @@ namespace Application.Clients
         public string Oked { get; set; }
         public int EmployeesCount { get; set; }
         public DateTime? EcpExpiryDate { get; set; }
-
-        // LEVEL 2 — опционально
-        public string ResponsiblePersonContact { get; set; }
-        public string BankManagerContact { get; set; }
-        public string ManagerNotes { get; set; }
-
-        // LEVEL 3 — опционально
-        public string EcpPassword { get; set; }
-        public string EsfPassword { get; set; }
-        public string BankingPasswords { get; set; }
-        public string StrategicNotes { get; set; }
-        public string PersonalInfo { get; set; }
+        public decimal TotalDebt { get; set; }
     }
 }

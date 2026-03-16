@@ -23,5 +23,8 @@ namespace Application.Clients
         public string SortField { get; set; } = "firstname";
         public string Order { get; set; } = "asc";
         public string Search { get; set; }
+        public string ResponsiblePersonContact { get; set; }
+        public string TaskRiskLevel { get; set; }
+        public string Oked { get; set; }
     }
 }

@@ -88,7 +88,6 @@ export function Header() {
             {/* LEVEL 2+: Услуги/Тарифы обычно управляются Senior+ */}
             {isSenior && (
               <>
-                {" "}
                 <NavbarLink
                   as={Link}
                   href="/services"
