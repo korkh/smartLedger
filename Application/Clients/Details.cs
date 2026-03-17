@@ -21,14 +21,14 @@ namespace Application.Clients
             private readonly DataContext _context;
             private readonly IMapper _mapper;
             private readonly IUserAccessor _userAccessor;
-            private readonly ILogger<Details> _logger; // Logger field
+            private readonly ILogger<Details> _logger;
 
             public Handler(
                 DataContext context,
                 IMapper mapper,
                 IUserAccessor userAccessor,
                 ILogger<Details> logger
-            ) // Injected logger
+            )
             {
                 _context = context;
                 _mapper = mapper;
@@ -41,11 +41,8 @@ namespace Application.Clients
                 CancellationToken cancellationToken
             )
             {
-                _logger.LogInformation("Запрос данных для клиента с ID: {Id}", request.Id);
-
                 try
                 {
-                    // ProjectTo автоматически подгружает связанные данные (Transactions, Tariff)
                     var client = await _context
                         .Clients.ProjectTo<ClientDto>(
                             _mapper.ConfigurationProvider,
@@ -54,25 +51,14 @@ namespace Application.Clients
                         .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
                     if (client == null)
-                    {
-                        _logger.LogWarning("Клиент с ID {Id} не найден в базе данных", request.Id);
-                        return null;
-                    }
+                        return Result<ClientDto>.Failure("Клиент не найден.");
 
                     return Result<ClientDto>.Success(client);
                 }
                 catch (Exception ex)
                 {
-                    // Логируем исключение с контекстом и русским описанием
-                    _logger.LogError(
-                        ex,
-                        "Критическая ошибка при получении данных о клиенте с ID: {Id}",
-                        request.Id
-                    );
-
-                    return Result<ClientDto>.Failure(
-                        "Произошла ошибка при получении данных о клиенте."
-                    );
+                    _logger.LogError(ex, "Ошибка при получении клиента");
+                    return Result<ClientDto>.Failure("Ошибка при получении данных клиента.");
                 }
             }
         }

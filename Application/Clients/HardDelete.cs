@@ -26,12 +26,13 @@ namespace Application.Clients
 
             public async Task<Result<Unit>> Handle(Command request, CancellationToken ct)
             {
+                // Только Admin
                 if (!_userAccessor.IsAdmin())
                     return Result<Unit>.Failure(
                         "Критическая операция: Только администратор может физически удалять записи."
                     );
 
-                // .IgnoreQueryFilters() позволяет найти клиента, даже если он уже в "корзине"
+                // IgnoreQueryFilters → позволяет удалить даже soft‑deleted клиента
                 var affected = await _context
                     .Clients.IgnoreQueryFilters()
                     .Where(x => x.Id == request.Id)
@@ -39,7 +40,7 @@ namespace Application.Clients
 
                 return affected > 0
                     ? Result<Unit>.Success(Unit.Value)
-                    : Result<Unit>.Failure("Клиент не найден в базе данных.");
+                    : Result<Unit>.Failure("Клиент не найден.");
             }
         }
     }

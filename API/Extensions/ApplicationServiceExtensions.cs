@@ -2,7 +2,9 @@ using API.Services;
 using Application.Clients;
 using Application.Common.Configurations;
 using Application.Core;
+using Application.Interfaces;
 using Application.Services;
+using Domain.Entities;
 using Domain.Interfaces;
 using Domain.Services;
 using FluentValidation;
@@ -128,6 +130,16 @@ namespace API.Extensions
             services.AddMediatR(cfg =>
                 cfg.RegisterServicesFromAssembly(typeof(GetList.Handler).Assembly)
             );
+
+            // Data Protection
+            services.AddDataProtection();
+            services.AddScoped<IEncryptionService, EncryptionService>();
+
+            services.AddScoped<
+                IEntityTypeConfiguration<ClientSensitive>,
+                ClientSensitiveConfiguration
+            >();
+
             // Assembly allocates all mapping profiles inside the project
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<CreateClient>();
@@ -139,11 +151,19 @@ namespace API.Extensions
 
             // Services
             // services.AddScoped<IPhotoAccessor, PhotoAccessor>();
-            // services.AddScoped<EmailSender>();
+            services.AddScoped<EmailSender>();
             services.AddScoped<ISearchExpressionBuilder, SearchExpressionBuilder>();
+
+            //Client Services
             services.AddScoped<ITaxService, TaxService>(); // Если у вас есть интерфейс и реализация
             services.AddScoped<ClientAppService>(); // Сам сервис для Dashboard
-            services.AddHttpClient<IaiAnalysisService, AiAnalysisService>();
+
+            // AI Services
+            services.AddScoped<IAiRiskAnalysisService, AiRiskAnalysisService>();
+            services.AddScoped<IAiAnalysisService, AiAnalysisService>();
+            services.AddScoped<IRiskAlertService, RiskAlertService>();
+
+            // Cloudinary
             services.Configure<CloudinarySettings>(config.GetSection("Cloudinary"));
 
             services.AddScoped<EmailSender>();

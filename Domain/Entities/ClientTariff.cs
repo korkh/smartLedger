@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Constants;
 using Domain.Entities.Common;
 
 namespace Domain.Entities
@@ -13,27 +14,45 @@ namespace Domain.Entities
 
         [ForeignKey("ClientId")]
         public virtual Client Client { get; set; }
+        public TariffPackage Package { get; set; }
 
-        // Monthly contract amount (СУММА ДОГОВОРА)
-        public decimal MonthlyFee { get; set; }
-        public decimal Price => MonthlyFee; // Алиас для совместимости с сервисом
+        // --- Финансовые параметры ---
+        public decimal MonthlyFee { get; set; } // СУММА ДОГОВОРА
+        public decimal TailAmount { get; set; } // Сумма по хвостам (Excel)
+        public decimal Price => MonthlyFee;
 
-        // Maximum allowed operations in the current month
-        public int OperationsLimit { get; set; }
+        // --- Лимиты операций ---
+        public int OperationsLimit { get; set; } // План операций
+        public int CarriedOverOperations { get; set; } // Перенос операций
+        public int TotalOperationsLimit => OperationsLimit + CarriedOverOperations;
 
-        // Maximum communication/consultation time allowed in minutes
-        public int CommunicationMinutesLimit { get; set; }
-        public int ConsultingLimit => CommunicationMinutesLimit;
+        // --- Лимиты по времени (коммуникации) ---
+        public int CommunicationMinutesLimit { get; set; } // План минут
+        public int CarriedOverMinutes { get; set; } // Перенос минут
+        public int TotalMinutesLimit => CommunicationMinutesLimit + CarriedOverMinutes;
 
-        // Operations carried over from the previous month (Перенесенные операции)
-        public int CarriedOverOperations { get; set; }
+        // --- Лимиты по отчётам ---
+        public int StatisticalReportsLimit { get; set; }
+        public int MonthlyTaxReportsLimit { get; set; }
+        public int QuarterlyTaxReportsLimit { get; set; }
+        public int SemiAnnualTaxReportsLimit { get; set; }
+        public int AnnualTaxReportsLimit { get; set; }
 
-        // Minutes carried over from the previous month (Перенесенное время)
-        public int CarriedOverMinutes { get; set; }
+        // --- Кадровый учёт ---
+        public int EmployeeCountLimit { get; set; } // *кол-во сотрудников
 
-        public DateTime ContractDate { get; set; }
+        // --- Включённые услуги (флаги) ---
+        public bool IncludesHR { get; set; } // Кадровый учет
+        public bool IncludesMonthlyReports { get; set; }
+        public bool IncludesQuarterlyReports { get; set; }
+        public bool IncludesSemiAnnualReports { get; set; }
+        public bool IncludesAnnualReports { get; set; }
 
-        // Useful for tracking historical changes of tariffs
+        // --- Даты ---
+        public DateTime ContractDate { get; set; } // Дата начала
+        public DateTime? ContractSigningDate { get; set; } // Дата подписания договора
+
+        // --- Статус ---
         public bool IsActive { get; set; } = true;
     }
 }

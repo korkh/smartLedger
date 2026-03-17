@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Constants;
 using Domain.Entities.Common;
 
 namespace Domain.Entities
@@ -9,32 +9,38 @@ namespace Domain.Entities
         [Key]
         public Guid Id { get; set; }
 
-        // LEVEL 1 — публичные данные
-        [Required, MaxLength(255)]
         public string FirstName { get; set; }
-
-        [Required, MaxLength(255)]
         public string LastName { get; set; }
 
-        [MaxLength(12)]
         public string BinIin { get; set; }
-
         public string Address { get; set; }
-        public string TaxRegime { get; set; }
+
+        public TaxRegime TaxRegime { get; set; }
+
         public string NdsStatus { get; set; }
         public string TaxRiskLevel { get; set; }
         public string Oked { get; set; }
+
         public int EmployeesCount { get; set; }
         public DateTime? EcpExpiryDate { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
         public decimal TotalDebt { get; set; }
 
-        // Навигация
-        //Level 2 access
+        // --- Тарифы клиента ---
+        public ICollection<ClientTariff> ClientTariffs { get; set; } = new List<ClientTariff>();
+
+        // --- Текущий тариф (не мапится в БД) ---
+        public ClientTariff CurrentTariff =>
+            ClientTariffs
+                .Where(t => t.IsActive)
+                .OrderByDescending(t => t.ContractDate)
+                .FirstOrDefault();
+
+        // --- Транзакции клиента ---
+        public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+
+        // --- Уровни доступа ---
         public virtual ClientInternal Internal { get; set; }
         public virtual ClientSensitive Sensitive { get; set; }
-        public virtual ClientTariff CurrentTariff { get; set; }
-        public virtual ICollection<Transaction> Transactions { get; set; } = [];
     }
 }

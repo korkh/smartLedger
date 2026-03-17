@@ -31,7 +31,7 @@ namespace Application.Clients
         {
             private readonly DataContext _context;
             private readonly IMapper _mapper;
-            private readonly ILogger<CreateClient> _logger; // Added logger
+            private readonly ILogger<CreateClient> _logger;
 
             public Handler(DataContext context, IMapper mapper, ILogger<CreateClient> logger)
             {
@@ -46,72 +46,49 @@ namespace Application.Clients
             )
             {
                 _logger.LogInformation(
-                    "Попытка создания нового клиента: {FirstName} {LastName}",
+                    "Создание клиента: {First} {Last}",
                     request.Client.FirstName,
                     request.Client.LastName
                 );
 
                 try
                 {
-                    // 1. Проверка на дубликат по БИН/ИИН
+                    // 1. Проверка дубликата
                     if (!string.IsNullOrEmpty(request.Client.BinIin))
                     {
-                        var exists = await _context.Clients.AnyAsync(
+                        bool exists = await _context.Clients.AnyAsync(
                             x => x.BinIin == request.Client.BinIin,
                             cancellationToken
                         );
 
                         if (exists)
-                        {
-                            _logger.LogWarning(
-                                "Клиент с БИН/ИИН {BinIin} уже существует",
-                                request.Client.BinIin
-                            );
-                            return Result<Unit>.Failure(
-                                "Клиент с таким БИН/ИИН уже зарегистрирован в системе."
-                            );
-                        }
+                            return Result<Unit>.Failure("Клиент с таким БИН/ИИН уже существует.");
                     }
 
-                    // 2. Маппинг данных
+                    // 2. Маппинг
                     var client = _mapper.Map<Client>(request.Client);
 
-                    if (request.Transactions != null && request.Transactions.Count != 0)
-                    {
-                        _logger.LogInformation(
-                            "Добавление {Count} начальных транзакций для клиента",
-                            request.Transactions.Count
-                        );
+                    client.Internal ??= new ClientInternal();
+                    client.Sensitive ??= new ClientSensitive();
+
+                    // 3. Начальные транзакции
+                    if (request.Transactions?.Count > 0)
                         client.Transactions = _mapper.Map<List<Transaction>>(request.Transactions);
-                    }
 
-                    // 3. Сохранение
+                    // 4. Сохранение
                     _context.Clients.Add(client);
-                    var result = await _context.SaveChangesAsync(cancellationToken) > 0;
 
-                    if (!result)
-                    {
-                        _logger.LogError(
-                            "Ошибка при записи клиента в базу данных. SaveChanges вернул 0."
-                        );
-                        return Result<Unit>.Failure(
-                            "Не удалось сохранить данные клиента в базе данных."
-                        );
-                    }
+                    bool saved = await _context.SaveChangesAsync(cancellationToken) > 0;
 
-                    _logger.LogInformation("Клиент успешно создан. ID: {Id}", client.Id);
+                    if (!saved)
+                        return Result<Unit>.Failure("Не удалось сохранить клиента.");
+
                     return Result<Unit>.Success(Unit.Value);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(
-                        ex,
-                        "Критическая ошибка при создании клиента {LastName}",
-                        request.Client.LastName
-                    );
-                    return Result<Unit>.Failure(
-                        "Произошла внутренняя ошибка сервера при создании клиента."
-                    );
+                    _logger.LogError(ex, "Ошибка при создании клиента");
+                    return Result<Unit>.Failure("Системная ошибка при создании клиента.");
                 }
             }
         }

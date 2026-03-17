@@ -2,7 +2,7 @@ namespace Domain.Constants
 {
     public static class TaxConstants
     {
-        // Thresholds from your "Справочник" sheet
+        // Порог НДС по годам (из Excel)
         public static readonly Dictionary<int, decimal> NdsThresholds = new()
         {
             { 2023, 69000000m },
@@ -11,15 +11,7 @@ namespace Domain.Constants
             { 2026, 82000000m },
         };
 
-        // Default value if year is not found (20,000 MRP estimate)
+        // Значение по умолчанию, если год не найден
         public const decimal DefaultNdsThreshold = 73840000m;
-
-        public static readonly ServiceType[] NdsAffectingServices =
-        [
-            ServiceType.BankStatement,
-            ServiceType.CargoCustoms, // ЭАВР / СНТ
-            ServiceType.TaxCalculation,
-            ServiceType.InventoryWriteOff,
-        ];
     }
 }

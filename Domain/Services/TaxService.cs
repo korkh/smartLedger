@@ -2,106 +2,117 @@ using Domain.Constants;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 
-namespace Domain.Services;
-
-public interface ITaxService
+namespace Domain.Services
 {
-    decimal GetRemainingNdsLimit(Client client, int year);
-    TariffUsageStats GetTariffUsage(Client client, int year, int month);
-}
-
-public class TariffUsageStats
-{
-    public int RemainingOperations { get; set; }
-    public double OperationsPercentage { get; set; }
-    public int RemainingMinutes { get; set; }
-    public double MinutesPercentage { get; set; }
-
-    // Метрики для компонентов <ReportMetric />
-    public int StatReportsCount { get; set; }
-    public int MonthlyTaxReports { get; set; }
-    public int QuarterlyTaxReports { get; set; }
-    public int SemiAnnualTaxReports { get; set; }
-    public int AnnualTaxReports { get; set; }
-}
-
-public class TaxService(ILogger<TaxService> logger) : ITaxService
-{
-    public decimal GetRemainingNdsLimit(Client client, int year)
+    public interface ITaxService
     {
-        // If already a VAT taxpayer, the limit is irrelevant
-        if (client.NdsStatus == "Taxpayer")
-            return 0;
-
-        if (!TaxConstants.NdsThresholds.TryGetValue(year, out var threshold))
-            threshold = TaxConstants.DefaultNdsThreshold;
-
-        // Суммируем оборот на основе транзакций, чей тип влияет на порог НДС
-        var currentTurnover = client
-            .Transactions.Where(t =>
-                t.Date.Year == year
-                && t.Status == "Completed"
-                // Теперь проверяем через Enum, а не через навигационное свойство Service
-                && TaxConstants.NdsAffectingServices.Contains(t.ServiceType)
-            )
-            .Sum(t => t.NdsBaseAmount);
-
-        var remaining = threshold - currentTurnover;
-        return remaining > 0 ? remaining : 0;
+        decimal GetRemainingNdsLimit(Client client, int year);
+        TariffUsageStats GetTariffUsage(Client client, ClientTariff tariff, int year, int month);
     }
 
-    public TariffUsageStats GetTariffUsage(Client client, int year, int month)
+    public class TaxService : ITaxService
     {
-        var stats = new TariffUsageStats();
+        private readonly ILogger<TaxService> _logger;
 
-        // Filtering transactions for the specific month and year
-        var monthlyTransactions = client
-            .Transactions.Where(t =>
-                t.Date.Year == year && t.Date.Month == month && t.Status == "Completed"
-            )
-            .ToList();
-
-        // 1. Map report metrics from transaction properties (aligned with CSV columns)
-        stats.StatReportsCount = monthlyTransactions.Count(t =>
-            t.ServiceType == ServiceType.StatReport
-        );
-        stats.MonthlyTaxReports = monthlyTransactions.Count(t =>
-            t.ServiceType == ServiceType.TaxReport
-        );
-
-        stats.QuarterlyTaxReports = monthlyTransactions.Count(t =>
-            t.ServiceType == ServiceType.QuarterlyTaxReport
-        );
-        stats.SemiAnnualTaxReports = monthlyTransactions.Count(t =>
-            t.ServiceType == ServiceType.SemiAnnualTaxReport
-        );
-        stats.AnnualTaxReports = monthlyTransactions.Count(t =>
-            t.ServiceType == ServiceType.AnnualTaxReport
-        );
-
-        var tariff = client.CurrentTariff;
-        if (tariff == null)
+        public TaxService(ILogger<TaxService> logger)
         {
-            logger.LogWarning("No tariff found for client {ClientId}", client.Id);
-            return stats;
+            _logger = logger;
         }
 
-        // 2. Лимиты операций
-        int totalOpsLimit = tariff.OperationsLimit + tariff.CarriedOverOperations;
-        int usedOps = monthlyTransactions.Sum(t => t.OperationsCount);
+        // ---------------------------------------------------------
+        // 1. Расчёт оставшегося лимита НДС
+        // ---------------------------------------------------------
+        public decimal GetRemainingNdsLimit(Client client, int year)
+        {
+            // Если клиент уже плательщик НДС — лимит не имеет смысла
+            if (client.NdsStatus == "Taxpayer")
+                return 0;
 
-        stats.RemainingOperations = Math.Max(0, totalOpsLimit - usedOps);
-        stats.OperationsPercentage =
-            totalOpsLimit > 0 ? Math.Round((double)usedOps / totalOpsLimit * 100, 2) : 0;
+            // Получаем порог НДС
+            if (!TaxConstants.NdsThresholds.TryGetValue(year, out var threshold))
+                threshold = TaxConstants.DefaultNdsThreshold;
 
-        // 3. Лимиты консультаций
-        int totalMinLimit = tariff.CommunicationMinutesLimit + tariff.CarriedOverMinutes;
-        int usedMinutes = monthlyTransactions.Sum(t => t.ActualTimeMinutes);
+            // Суммируем оборот по транзакциям, где услуга влияет на НДС
+            var currentTurnover = client
+                .Transactions.Where(t =>
+                    t.Date.Year == year
+                    && t.Status == "Completed"
+                    && t.Service != null
+                    && t.Service.AffectsNdsThreshold
+                )
+                .Sum(t => t.NdsBaseAmount);
 
-        stats.RemainingMinutes = Math.Max(0, totalMinLimit - usedMinutes);
-        stats.MinutesPercentage =
-            totalMinLimit > 0 ? Math.Round((double)usedMinutes / totalMinLimit * 100, 2) : 0;
+            var remaining = threshold - currentTurnover;
+            return remaining > 0 ? remaining : 0;
+        }
 
-        return stats;
+        // ---------------------------------------------------------
+        // 2. Расчёт использования тарифа + хвостов
+        // ---------------------------------------------------------
+        public TariffUsageStats GetTariffUsage(
+            Client client,
+            ClientTariff tariff,
+            int year,
+            int month
+        )
+        {
+            var stats = new TariffUsageStats();
+
+            // Фильтруем транзакции за месяц
+            var monthlyTransactions = client
+                .Transactions.Where(t =>
+                    t.Date.Year == year && t.Date.Month == month && t.Status == "Completed"
+                )
+                .ToList();
+
+            // -----------------------------------------------------
+            // ОТЧЁТНОСТЬ (булевые флаги)
+            // -----------------------------------------------------
+            stats.StatReportsCount = monthlyTransactions.Count(t => t.IsStatReport);
+            stats.MonthlyTaxReports = monthlyTransactions.Count(t => t.IsMonthlyReport);
+            stats.QuarterlyTaxReports = monthlyTransactions.Count(t => t.IsQuarterlyReport);
+            stats.SemiAnnualTaxReports = monthlyTransactions.Count(t => t.IsSemiAnnualReport);
+            stats.AnnualTaxReports = monthlyTransactions.Count(t => t.IsAnnualReport);
+
+            // -----------------------------------------------------
+            // Если тарифа нет — возвращаем только отчётность
+            // -----------------------------------------------------
+            if (tariff == null)
+            {
+                _logger.LogWarning("No active tariff found for client {ClientId}", client.Id);
+                return stats;
+            }
+
+            // -----------------------------------------------------
+            // ОПЕРАЦИИ
+            // -----------------------------------------------------
+            int totalOpsLimit = tariff.OperationsLimit + tariff.CarriedOverOperations;
+            int usedOps = monthlyTransactions.Sum(t => t.OperationsCount);
+
+            stats.RemainingOperations = Math.Max(0, totalOpsLimit - usedOps);
+            stats.OverusedOperations = Math.Max(0, usedOps - totalOpsLimit);
+
+            // Стоимость перерасхода (можно вынести в тариф)
+            stats.OverusedOperationsCost = stats.OverusedOperations * 500m;
+
+            stats.OperationsPercentage =
+                totalOpsLimit > 0 ? Math.Round((double)usedOps / totalOpsLimit * 100, 2) : 0;
+
+            // -----------------------------------------------------
+            // МИНУТЫ
+            // -----------------------------------------------------
+            int totalMinLimit = tariff.CommunicationMinutesLimit + tariff.CarriedOverMinutes;
+            int usedMinutes = monthlyTransactions.Sum(t => t.ActualTimeMinutes);
+
+            stats.RemainingMinutes = Math.Max(0, totalMinLimit - usedMinutes);
+            stats.OverusedMinutes = Math.Max(0, usedMinutes - totalMinLimit);
+
+            stats.OverusedMinutesCost = stats.OverusedMinutes * 50m;
+
+            stats.MinutesPercentage =
+                totalMinLimit > 0 ? Math.Round((double)usedMinutes / totalMinLimit * 100, 2) : 0;
+
+            return stats;
+        }
     }
 }

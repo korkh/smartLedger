@@ -1,6 +1,7 @@
 using Application.Core;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Domain.Constants;
 using Domain.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -46,105 +47,130 @@ namespace Application.Clients
             {
                 var userName = _userAccessor.GetUserName();
                 _logger.LogInformation(
-                    "Пользователь {User} запрашивает список клиентов с параметрами: {@Params}",
+                    "Пользователь {User} запрашивает список клиентов: {@Params}",
                     userName,
                     request.Params
                 );
 
                 try
                 {
-                    // 1. Инициализация запроса
+                    // ---------------------------------------------------------
+                    // 1. Базовый запрос
+                    // ---------------------------------------------------------
                     var query = _context
                         .Clients.Include(x => x.CurrentTariff)
-                        .Include(x => x.Transactions)
-                        .AsNoTracking();
+                        .AsNoTracking()
+                        .AsQueryable();
 
-                    // 2. Базовая фильтрация и безопасность
-                    if (userName.ToLower() != "admin")
+                    // ---------------------------------------------------------
+                    // 2. Ограничение доступа (не Admin → только свои клиенты)
+                    // ---------------------------------------------------------
+                    if (!_userAccessor.IsAdmin())
                     {
-                        query = query.Where(x => x.ResponsiblePersonContact.Contains(userName));
+                        query = query.Where(x =>
+                            x.Internal != null
+                            && x.Internal.ResponsiblePersonContact != null
+                            && x.Internal.ResponsiblePersonContact.Contains(userName)
+                        );
                     }
 
+                    // ---------------------------------------------------------
+                    // 3. Фильтры
+                    // ---------------------------------------------------------
                     if (!string.IsNullOrEmpty(request.Params.BinIin))
                         query = query.Where(x => x.BinIin.Contains(request.Params.BinIin));
 
                     if (!string.IsNullOrEmpty(request.Params.TaxRegime))
-                        query = query.Where(x => x.TaxRegime == request.Params.TaxRegime);
+                    {
+                        if (Enum.TryParse<TaxRegime>(request.Params.TaxRegime, out var regime))
+                            query = query.Where(x => x.TaxRegime == regime);
+                    }
 
                     if (!string.IsNullOrEmpty(request.Params.NdsStatus))
                         query = query.Where(x => x.NdsStatus == request.Params.NdsStatus);
 
-                    // --- НОВОЕ: Фильтрация по сроку ЭЦП ---
+                    // --- Фильтр по ЭЦП ---
                     if (request.Params.EcpWarningOnly)
                     {
                         var today = DateTime.UtcNow;
-                        var warningThreshold = today.AddDays(request.Params.EcpWarningDays);
+                        var threshold = today.AddDays(request.Params.EcpWarningDays);
 
-                        // Показываем только тех, у кого срок в диапазоне [сегодня; сегодня + N дней]
                         query = query.Where(x =>
                             x.EcpExpiryDate.HasValue
-                            && x.EcpExpiryDate.Value <= warningThreshold
                             && x.EcpExpiryDate.Value >= today
-                        );
-
-                        _logger.LogDebug(
-                            "Применен фильтр критических ЭЦП: порог {Days} дней",
-                            request.Params.EcpWarningDays
+                            && x.EcpExpiryDate.Value <= threshold
                         );
                     }
 
-                    // 3. Проекция в DTO
+                    // ---------------------------------------------------------
+                    // 4. Проекция в DTO
+                    // ---------------------------------------------------------
                     var dtoQuery = query.ProjectTo<ClientDto>(_mapper.ConfigurationProvider);
 
-                    // 4. Глобальный поиск (по текстовым полям DTO)
+                    // ---------------------------------------------------------
+                    // 5. Глобальный поиск
+                    // ---------------------------------------------------------
                     if (!string.IsNullOrWhiteSpace(request.Params.Search))
                     {
-                        var searchPredicate = _searchBuilder.BuildSearchExpression<ClientDto>(
+                        var predicate = _searchBuilder.BuildSearchExpression<ClientDto>(
                             request.Params.Search
                         );
-                        dtoQuery = dtoQuery.Where(searchPredicate);
+                        dtoQuery = dtoQuery.Where(predicate);
                     }
 
-                    // 5. Динамическая сортировка
-                    dtoQuery = (request.Params.SortField?.ToLower()) switch
+                    // ---------------------------------------------------------
+                    // 6. Сортировка
+                    // ---------------------------------------------------------
+                    dtoQuery = request.Params.SortField?.ToLower() switch
                     {
                         "firstname" => request.Params.Order == "asc"
-                            ? dtoQuery.OrderBy(e => e.FirstName)
-                            : dtoQuery.OrderByDescending(e => e.FirstName),
+                            ? dtoQuery.OrderBy(x => x.FirstName)
+                            : dtoQuery.OrderByDescending(x => x.FirstName),
+
                         "lastname" => request.Params.Order == "asc"
-                            ? dtoQuery.OrderBy(e => e.LastName)
-                            : dtoQuery.OrderByDescending(e => e.LastName),
+                            ? dtoQuery.OrderBy(x => x.LastName)
+                            : dtoQuery.OrderByDescending(x => x.LastName),
+
                         "bin" => request.Params.Order == "asc"
-                            ? dtoQuery.OrderBy(e => e.BinIin)
-                            : dtoQuery.OrderByDescending(e => e.BinIin),
-                        "ecpdate" => request.Params.Order == "asc" // Добавили сортировку по дате ЭЦП
-                            ? dtoQuery.OrderBy(e => e.EcpExpiryDate)
-                            : dtoQuery.OrderByDescending(e => e.EcpExpiryDate),
-                        _ => dtoQuery.OrderBy(e => e.FirstName),
+                            ? dtoQuery.OrderBy(x => x.BinIin)
+                            : dtoQuery.OrderByDescending(x => x.BinIin),
+
+                        "ecpdate" => request.Params.Order == "asc"
+                            ? dtoQuery.OrderBy(x => x.EcpExpiryDate)
+                            : dtoQuery.OrderByDescending(x => x.EcpExpiryDate),
+
+                        _ => dtoQuery.OrderBy(x => x.FirstName),
                     };
 
-                    // 6. Выполнение
-                    var pagedList = await PagedList<ClientDto>.CreateAsync(
+                    // ---------------------------------------------------------
+                    // 7. Пагинация
+                    // ---------------------------------------------------------
+                    var paged = await PagedList<ClientDto>.CreateAsync(
                         dtoQuery,
                         request.Params.PageNumber,
                         request.Params.PageSize
                     );
 
-                    foreach (var item in pagedList)
+                    // ---------------------------------------------------------
+                    // 8. DaysUntilEcpExpires (без foreach)
+                    // ---------------------------------------------------------
+                    foreach (var item in paged)
                     {
                         if (item.EcpExpiryDate.HasValue)
-                        {
                             item.DaysUntilEcpExpires = (
                                 item.EcpExpiryDate.Value - DateTime.UtcNow
                             ).Days;
-                        }
                     }
 
-                    return Result<PagedList<ClientDto>>.Success(pagedList);
+                    return Result<PagedList<ClientDto>>.Success(paged);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Критическая ошибка списка клиентов для {User}", userName);
+                    _logger.LogError(
+                        ex,
+                        "Ошибка при загрузке списка клиентов пользователем {User}",
+                        userName
+                    );
                     return Result<PagedList<ClientDto>>.Failure("Ошибка при загрузке данных.");
                 }
             }

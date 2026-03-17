@@ -7,7 +7,10 @@ namespace Application.Clients
         public string LastName { get; set; }
         public string BinIin { get; set; }
         public string Address { get; set; }
+
+        // Enum → string
         public string TaxRegime { get; set; }
+
         public string NdsStatus { get; set; }
         public string TaxRiskLevel { get; set; }
         public string Oked { get; set; }

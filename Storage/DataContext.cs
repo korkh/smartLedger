@@ -4,32 +4,46 @@ using Domain.Interfaces;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Storage
 {
-    public class DataContext(DbContextOptions<DataContext> options, IUserAccessor userAccessor)
-        : IdentityDbContext<User, Role, int>(options)
+    public class DataContext : IdentityDbContext<User, Role, int>
     {
-        private readonly IUserAccessor _userAccessor = userAccessor;
+        private readonly IUserAccessor _userAccessor;
 
+        public DataContext(DbContextOptions<DataContext> options, IUserAccessor userAccessor)
+            : base(options)
+        {
+            _userAccessor = userAccessor;
+        }
+
+        // --- CORE ENTITIES ---
         public DbSet<Client> Clients { get; set; }
         public DbSet<ClientInternal> ClientInternals { get; set; }
         public DbSet<ClientSensitive> ClientSensitives { get; set; }
+
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<ServiceReference> ServiceReferences { get; set; }
+
         public DbSet<ClientTariff> ClientTariffs { get; set; }
+        public DbSet<TariffHistory> TariffHistories { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+
         public DbSet<UserTask> Tasks { get; set; }
         public DbSet<Photo> Photos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // Игнорируем проверку изменений модели при каждом запуске
             optionsBuilder.ConfigureWarnings(w =>
                 w.Ignore(RelationalEventId.PendingModelChangesWarning)
             );
         }
 
+        // ---------------------------------------------------------
+        // SAVE CHANGES + SOFT DELETE
+        // ---------------------------------------------------------
         public override async Task<int> SaveChangesAsync(
             CancellationToken cancellationToken = default
         )
@@ -44,10 +58,11 @@ namespace Storage
                         entry.Entity.CreatedAt = DateTime.UtcNow;
                         entry.Entity.CreatedBy = currentUserName;
                         break;
+
                     case EntityState.Modified:
                         entry.Entity.LastModifiedAt = DateTime.UtcNow;
-                        // Можно добавить поле LastModifiedBy в BaseEntity по аналогии
                         break;
+
                     case EntityState.Deleted:
                         if (entry.Entity is ISoftDelete softDelete)
                         {
@@ -58,56 +73,105 @@ namespace Storage
                         break;
                 }
             }
+
             return await base.SaveChangesAsync(cancellationToken);
         }
 
+        // ---------------------------------------------------------
+        // MODEL CONFIGURATION
+        // ---------------------------------------------------------
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Глобальный фильтр: по умолчанию загружаем только не удаленные записи
+            // ----------------------------------------------------
+            // ENCRYPTION CONFIGURATION (через DI)
+            // ----------------------------------------------------
+            var sensitiveConfigs = this.GetService<
+                IEnumerable<IEntityTypeConfiguration<ClientSensitive>>
+            >();
+            foreach (var config in sensitiveConfigs)
+                builder.ApplyConfiguration(config);
+
+            // --- GLOBAL SOFT DELETE FILTERS ---
             builder.Entity<Client>().HasQueryFilter(c => !c.IsDeleted);
             builder.Entity<Transaction>().HasQueryFilter(t => !t.IsDeleted);
             builder.Entity<ClientTariff>().HasQueryFilter(t => !t.IsDeleted);
             builder.Entity<ServiceReference>().HasQueryFilter(s => !s.IsDeleted);
             builder.Entity<UserTask>().HasQueryFilter(u => !u.IsDeleted);
+            builder.Entity<TariffHistory>().HasQueryFilter(h => !h.IsDeleted);
+            builder.Entity<Invoice>().HasQueryFilter(i => !i.IsDeleted);
 
-            // 1. СВЯЗЬ КЛИЕНТ - ТРАНЗАКЦИИ (Один-ко-многим)
+            // -----------------------------------------------------
+            // CLIENT → TRANSACTIONS (1:M)
+            // -----------------------------------------------------
             builder
                 .Entity<Client>()
-                .HasMany(x => x.Transactions)
-                .WithOne(x => x.Client)
-                .HasForeignKey(x => x.ClientId)
+                .HasMany(c => c.Transactions)
+                .WithOne(t => t.Client)
+                .HasForeignKey(t => t.ClientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 2. СВЯЗЬ КЛИЕНТ - ТАРИФ (Строго Один-к-одному)
-            // Это позволит тебе делать .Include(c => c.CurrentTariff) в Dashboard
+            // -----------------------------------------------------
+            // CLIENT → TARIFFS (1:M)
+            // -----------------------------------------------------
             builder
                 .Entity<Client>()
-                .HasOne(c => c.CurrentTariff)
+                .HasMany(c => c.ClientTariffs)
                 .WithOne(t => t.Client)
-                .HasForeignKey<ClientTariff>(t => t.ClientId)
+                .HasForeignKey(t => t.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 3. ТОЧНОСТЬ ДЕСЯТИЧНЫХ ЧИСЕЛ (Важно для налогов и НДС)
-            builder.Entity<Transaction>(entity =>
-            {
-                entity.Property(e => e.ExtraServiceAmount).HasPrecision(18, 2);
-            });
+            // -----------------------------------------------------
+            // TARIFF HISTORY → CLIENT (M:1)
+            // -----------------------------------------------------
+            builder
+                .Entity<TariffHistory>()
+                .HasOne(h => h.Client)
+                .WithMany()
+                .HasForeignKey(h => h.ClientId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<ServiceReference>(entity =>
-            {
-                entity.Property(e => e.BasePrice).HasPrecision(18, 2);
-                entity.Property(e => e.AffectsNdsThreshold).HasDefaultValue(false);
-            });
+            builder
+                .Entity<TariffHistory>()
+                .HasOne(h => h.Tariff)
+                .WithMany()
+                .HasForeignKey(h => h.TariffId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<ClientTariff>(entity =>
-            {
-                entity.Property(e => e.MonthlyFee).HasPrecision(18, 2);
-                // УДАЛИЛ ТУТ ПОВТОРНУЮ КОНФИГУРАЦИЮ СВЯЗИ .HasOne().WithMany()
-            });
+            // -----------------------------------------------------
+            // INVOICE → CLIENT (M:1)
+            // -----------------------------------------------------
+            builder
+                .Entity<Invoice>()
+                .HasOne(i => i.Client)
+                .WithMany()
+                .HasForeignKey(i => i.ClientId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // 4. СИДИРОВАНИЕ РОЛЕЙ
+            // -----------------------------------------------------
+            // DECIMAL PRECISION
+            // -----------------------------------------------------
+            builder
+                .Entity<Transaction>()
+                .Property(e => e.ExtraServiceAmount)
+                .HasPrecision(18, 2);
+
+            builder.Entity<Transaction>().Property(e => e.NdsBaseAmount).HasPrecision(18, 2);
+
+            builder.Entity<ServiceReference>().Property(e => e.BasePrice).HasPrecision(18, 2);
+
+            builder.Entity<ClientTariff>().Property(e => e.MonthlyFee).HasPrecision(18, 2);
+
+            builder.Entity<Invoice>().Property(e => e.TariffAmount).HasPrecision(18, 2);
+
+            builder.Entity<Invoice>().Property(e => e.ExtraServicesAmount).HasPrecision(18, 2);
+
+            builder.Entity<Invoice>().Property(e => e.OveruseAmount).HasPrecision(18, 2);
+
+            // -----------------------------------------------------
+            // SEED ROLES
+            // -----------------------------------------------------
             builder
                 .Entity<Role>()
                 .HasData(

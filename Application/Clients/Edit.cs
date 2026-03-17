@@ -1,6 +1,7 @@
 using Application.Common.Helpers.Validators;
 using Application.Core;
 using AutoMapper;
+using Domain.Entities;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ namespace Application.Clients
         {
             private readonly DataContext _context;
             private readonly IMapper _mapper;
-            private readonly ILogger<Edit> _logger; // Добавили типизацию
+            private readonly ILogger<Edit> _logger;
 
             public Handler(DataContext context, IMapper mapper, ILogger<Edit> logger)
             {
@@ -42,54 +43,52 @@ namespace Application.Clients
                 CancellationToken cancellationToken
             )
             {
-                var clientId = request.Client.Id;
-                // 2. Находим существующего клиента
-                var client = await _context
-                    .Clients.Include(x => x.CurrentTariff)
-                    .FirstOrDefaultAsync(x => x.Id == clientId, cancellationToken);
-
-                if (client == null)
-                {
-                    _logger.LogWarning("Клиент с ID {Id} не был найден", clientId);
-                    return null;
-                }
-                // 2. РУЧНАЯ ЗАЩИТА (на случай, если маппер пропустит null)
-                // Если в запросе пришел null для полей 3-го уровня,
-                // мы подставляем в запрос значения, которые уже лежат в базе.
-                if (request.Client.StrategicNotes == null)
-                    request.Client.StrategicNotes = client.StrategicNotes;
-
-                if (request.Client.PersonalInfo == null)
-                    request.Client.PersonalInfo = client.PersonalInfo;
-
-                // 3. Маппинг (Обновляем только поля из DTO)
-                _mapper.Map(request.Client, client);
-
-                // 4. Сохранение с обработкой ошибок
                 try
                 {
-                    // Если ничего не изменилось (например, Level 2 просто открыл и закрыл карточку),
-                    // SaveChangesAsync вернет 0.
-                    var result = await _context.SaveChangesAsync(cancellationToken) > 0;
+                    var client = await _context
+                        .Clients.Include(x => x.CurrentTariff)
+                        .FirstOrDefaultAsync(x => x.Id == request.Client.Id, cancellationToken);
 
-                    if (!result)
-                        return Result<Unit>.Failure(
-                            "Изменения не были сохранены (возможно, данные идентичны)."
-                        );
+                    if (client == null)
+                        return Result<Unit>.Failure("Клиент не найден.");
+
+                    // Защита Level 3 полей
+                    // Загружаем чувствительные данные
+                    await _context
+                        .Entry(client)
+                        .Reference(c => c.Sensitive)
+                        .LoadAsync(cancellationToken);
+
+                    // Если чувствительных данных нет — создаём
+                    client.Sensitive ??= new ClientSensitive();
+
+                    // Защита Level 3 полей
+                    if (request.Client.StrategicNotes == null)
+                        request.Client.StrategicNotes = client.Sensitive.StrategicNotes;
+
+                    if (request.Client.PersonalInfo == null)
+                        request.Client.PersonalInfo = client.Sensitive.PersonalInfo;
+
+                    // Маппинг DTO → Client
+                    _mapper.Map(request.Client, client);
+
+                    // Маппинг Level 3 → ClientSensitive
+                    client.Sensitive.StrategicNotes = request.Client.StrategicNotes;
+                    client.Sensitive.PersonalInfo = request.Client.PersonalInfo;
+
+                    _mapper.Map(request.Client, client);
+
+                    bool saved = await _context.SaveChangesAsync(cancellationToken) > 0;
+
+                    if (!saved)
+                        return Result<Unit>.Failure("Изменения не были сохранены.");
 
                     return Result<Unit>.Success(Unit.Value);
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    _logger.LogError(ex, "Конфликт параллелизма для клиента {Id}", clientId);
-                    return Result<Unit>.Failure(
-                        "Данные были изменены другим пользователем. Обновите страницу."
-                    );
-                }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Ошибка при обновлении клиента {ClientId}", clientId);
-                    return Result<Unit>.Failure("Системная ошибка при сохранении данных.");
+                    _logger.LogError(ex, "Ошибка при обновлении клиента");
+                    return Result<Unit>.Failure("Системная ошибка при обновлении клиента.");
                 }
             }
         }

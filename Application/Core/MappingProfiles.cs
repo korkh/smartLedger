@@ -9,36 +9,41 @@ namespace Application.Core
     {
         public MappingProfiles()
         {
-            // 1. Client Mapping
+            // --- CLIENT (LEVEL 1–3 DTO) ---
             CreateMap<Client, ClientDto>()
+                .ForMember(d => d.TaxRegime, o => o.MapFrom(s => s.TaxRegime.ToString()))
+                .ForMember(d => d.StrategicNotes, o => o.MapFrom(s => s.Sensitive.StrategicNotes))
+                .ForMember(d => d.PersonalInfo, o => o.MapFrom(s => s.Sensitive.PersonalInfo))
                 .ReverseMap()
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<ClientDto, Client>()
-                // Не обновляем эти поля, если они пришли пустыми (защита данных 3-го уровня)
-                .ForMember(
-                    dest => dest.StrategicNotes,
-                    opt => opt.Condition(src => src.StrategicNotes != null)
-                )
-                .ForMember(
-                    dest => dest.PersonalInfo,
-                    opt => opt.Condition(src => src.PersonalInfo != null)
-                )
-                // Остальные поля
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+                .ForMember(d => d.Sensitive, o => o.Ignore()) // Sensitive маппим вручную
+                .ForAllMembers(opts =>
+                {
+                    opts.Condition(
+                        (src, dest, srcMember, context) =>
+                        {
+                            // Если это Level 3 поле — пропускаем
+                            if (opts.DestinationMember.Name is "StrategicNotes" or "PersonalInfo")
+                                return false;
 
-            // 2. Transaction Mapping
+                            return srcMember != null;
+                        }
+                    );
+                });
+
+            // --- TRANSACTION ---
             CreateMap<Transaction, TransactionDto>()
                 .ForMember(
                     dest => dest.ClientName,
                     opt => opt.MapFrom(src => $"{src.Client.FirstName} {src.Client.LastName}")
                 )
                 .ForMember(
-                    dest => dest.ServiceTypeName,
+                    dest => dest.ServiceCategoryName,
                     opt => opt.MapFrom(src => src.Service.Name)
                 )
+                .ForMember(dest => dest.ServiceCategory, opt => opt.MapFrom(src => src.Category))
                 .ReverseMap();
 
-            // 3. Dashboard Mapping
+            // --- DASHBOARD ---
             CreateMap<Client, ClientDashboardDto>()
                 .ForMember(d => d.TariffAmount, o => o.MapFrom(s => s.CurrentTariff.MonthlyFee))
                 .ForMember(
@@ -46,7 +51,7 @@ namespace Application.Core
                     o => o.MapFrom(s => s.CurrentTariff.OperationsLimit)
                 );
 
-            // 4. ClientTariff Mapping
+            // --- TARIFF ---
             CreateMap<ClientTariff, ClientTariffDto>()
                 .ForMember(d => d.ContractAmount, o => o.MapFrom(s => s.MonthlyFee))
                 .ForMember(d => d.AllowedOperations, o => o.MapFrom(s => s.OperationsLimit))

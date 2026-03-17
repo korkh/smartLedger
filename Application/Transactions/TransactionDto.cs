@@ -7,29 +7,47 @@ namespace Application.Transactions
         public Guid Id { get; set; }
         public DateTime Date { get; set; }
 
-        // Связи
+        // --- Клиент ---
         public Guid ClientId { get; set; }
-        public string ClientName { get; set; } // Для отображения в списке
+        public string ClientName { get; set; }
 
-        // Тип услуги (Enum — наш единственный источник правды)
-        public ServiceType ServiceType { get; set; }
-        public string ServiceTypeName { get; set; } // Локализованное имя из [Display]
-
+        // --- Услуга ---
+        public ServiceCategory ServiceCategory { get; set; }
+        public string ServiceCategoryName { get; set; }
         public string PerformerName { get; set; }
 
-        // Количественные показатели конкретной транзакции
+        // --- Количественные показатели ---
         public int OperationsCount { get; set; }
+
+        // --- Время ---
         public int ActualTimeMinutes { get; set; }
         public int BillableTimeMinutes { get; set; }
         public int CommunicationTimeMinutes { get; set; }
+        public int TeamWorkMinutes { get; set; }
+        public int ForceMajeureMinutes { get; set; }
+        public int TotalDeductibleMinutes { get; set; }
 
+        // --- Статус ---
         public string Status { get; set; }
 
-        // Финансовые показатели
+        // --- Разовые услуги ---
         public bool IsExtraService { get; set; }
         public decimal ExtraServiceAmount { get; set; }
+        public int ExtraServiceCount { get; set; }
 
-        // База для НДС (если применимо к этому типу услуги)
+        // --- НДС ---
         public decimal NdsBaseAmount { get; set; }
+
+        // --- Отчётность ---
+        public bool IsMonthlyReport { get; set; }
+        public bool IsQuarterlyReport { get; set; }
+        public bool IsSemiAnnualReport { get; set; }
+        public bool IsAnnualReport { get; set; }
+        public bool IsStatReport { get; set; }
+        public bool IsReport5 { get; set; }
+
+        // --- Примечания ---
+        public string OperationNote { get; set; }
+        public string ServiceNote { get; set; }
     }
 }
