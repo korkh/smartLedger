@@ -45,6 +45,7 @@ namespace Application.Transactions
             )
             {
                 var userName = _userAccessor.GetUserName();
+
                 _logger.LogInformation(
                     "User {User} is requesting transactions with parameters: {@Params}",
                     userName,
@@ -53,21 +54,36 @@ namespace Application.Transactions
 
                 try
                 {
-                    // 1. Base Query with Security: only transactions of clients responsible by current user
+                    // ---------------------------------------------------------
+                    // 1. Base query
+                    // ---------------------------------------------------------
                     var query = _context
                         .Transactions.AsNoTracking()
-                        .Where(t => t.Client.ResponsiblePersonContact.Contains(userName));
+                        .Include(t => t.Client)
+                            .ThenInclude(c => c.Internal)
+                        .Include(t => t.Service)
+                        .AsQueryable();
 
-                    // 2. Entity Level Filters (Handling Guid? to int conversion if necessary)
-                    if (request.Params.ClientId.HasValue)
+                    // ---------------------------------------------------------
+                    // 2. Security: non-admin sees only their clients
+                    // ---------------------------------------------------------
+                    if (!_userAccessor.IsAdmin())
                     {
-                        query = query.Where(x => x.ClientId == request.Params.ClientId.Value);
+                        query = query.Where(t =>
+                            t.Client.Internal != null
+                            && t.Client.Internal.ResponsiblePersonContact != null
+                            && t.Client.Internal.ResponsiblePersonContact.Contains(userName)
+                        );
                     }
+
+                    // ---------------------------------------------------------
+                    // 3. Filters
+                    // ---------------------------------------------------------
+                    if (request.Params.ClientId.HasValue)
+                        query = query.Where(x => x.ClientId == request.Params.ClientId.Value);
 
                     if (request.Params.ServiceId.HasValue)
-                    {
                         query = query.Where(x => x.ServiceId == request.Params.ServiceId.Value);
-                    }
 
                     if (request.Params.StartDate.HasValue)
                         query = query.Where(x => x.Date >= request.Params.StartDate.Value);
@@ -78,35 +94,47 @@ namespace Application.Transactions
                     if (!string.IsNullOrEmpty(request.Params.Status))
                         query = query.Where(x => x.Status == request.Params.Status);
 
-                    // 3. Project to DTO (Automapper handles related data joins)
+                    // ---------------------------------------------------------
+                    // 4. Project to DTO
+                    // ---------------------------------------------------------
                     var dtoQuery = query.ProjectTo<TransactionDto>(_mapper.ConfigurationProvider);
 
-                    // 4. Global Search via Expression Trees
+                    // ---------------------------------------------------------
+                    // 5. Global search
+                    // ---------------------------------------------------------
                     if (!string.IsNullOrWhiteSpace(request.Params.Search))
                     {
-                        var searchPredicate = _searchBuilder.BuildSearchExpression<TransactionDto>(
+                        var predicate = _searchBuilder.BuildSearchExpression<TransactionDto>(
                             request.Params.Search
                         );
-                        dtoQuery = dtoQuery.Where(searchPredicate);
+                        dtoQuery = dtoQuery.Where(predicate);
                     }
 
-                    // 5. Dynamic Sorting
+                    // ---------------------------------------------------------
+                    // 6. Sorting
+                    // ---------------------------------------------------------
                     var sortField = request.Params.SortField?.ToLower() ?? "date";
+
                     dtoQuery = sortField switch
                     {
                         "date" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(t => t.Date)
                             : dtoQuery.OrderByDescending(t => t.Date),
+
                         "clientname" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(t => t.ClientName)
                             : dtoQuery.OrderByDescending(t => t.ClientName),
+
                         "amount" => request.Params.Order == "asc"
                             ? dtoQuery.OrderBy(t => t.ExtraServiceAmount)
                             : dtoQuery.OrderByDescending(t => t.ExtraServiceAmount),
+
                         _ => dtoQuery.OrderByDescending(t => t.Date),
                     };
 
-                    // 6. Pagination and Result
+                    // ---------------------------------------------------------
+                    // 7. Pagination
+                    // ---------------------------------------------------------
                     var pagedList = await PagedList<TransactionDto>.CreateAsync(
                         dtoQuery,
                         request.Params.PageNumber,

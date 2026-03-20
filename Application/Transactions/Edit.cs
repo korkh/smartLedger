@@ -37,70 +37,32 @@ namespace Application.Transactions
                 _logger = logger;
             }
 
-            public async Task<Result<Unit>> Handle(
-                Command request,
-                CancellationToken cancellationToken
-            )
+            public async Task<Result<Unit>> Handle(Command request, CancellationToken ct)
             {
-                // Пытаемся распарсить ID из DTO (так как в DTO он Guid/string, а в базе int)
-                var transactionId = request.Transaction.Id;
-
-                _logger.LogInformation(
-                    "Request to edit transaction ID: {Id} for client: {Client}",
-                    transactionId,
-                    request.Transaction.ClientName
-                );
-
                 try
                 {
-                    // 1. Находим транзакцию в БД
-                    var transaction = await _context.Transactions.FirstOrDefaultAsync(
-                        x => x.Id == transactionId,
-                        cancellationToken
+                    var entity = await _context.Transactions.FirstOrDefaultAsync(
+                        x => x.Id == request.Transaction.Id,
+                        ct
                     );
 
-                    if (transaction == null)
-                    {
-                        _logger.LogWarning("Транзакция с ID {Id} не найдена", transactionId);
-                        return null;
-                    }
+                    if (entity == null)
+                        return Result<Unit>.Failure("Транзакция не найдена.");
 
-                    // 2. Обновляем поля сущности данными из DTO
-                    // AutoMapper обновит только разрешенные поля (дата, количество, минуты и т.д.)
-                    _mapper.Map(request.Transaction, transaction);
+                    // Маппим DTO → Entity
+                    _mapper.Map(request.Transaction, entity);
 
-                    // 3. Сохраняем изменения
-                    var result = await _context.SaveChangesAsync(cancellationToken) > 0;
+                    var saved = await _context.SaveChangesAsync(ct) > 0;
 
-                    if (!result)
-                    {
-                        _logger.LogInformation(
-                            "Транзакция {Id} не была изменена (данные идентичны)",
-                            transactionId
-                        );
-                        return Result<Unit>.Success(Unit.Value);
-                    }
+                    if (!saved)
+                        return Result<Unit>.Failure("Изменения не были сохранены.");
 
-                    _logger.LogInformation("Транзакция {Id} успешно обновлена", transactionId);
                     return Result<Unit>.Success(Unit.Value);
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    _logger.LogError(
-                        ex,
-                        "Конфликт параллельного доступа при обновлении транзакции {Id}",
-                        transactionId
-                    );
-                    return Result<Unit>.Failure(
-                        "Данные были изменены другим пользователем. Пожалуйста, обновите страницу."
-                    );
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Ошибка при обновлении транзакции {Id}", transactionId);
-                    return Result<Unit>.Failure(
-                        "Произошла системная ошибка при сохранении изменений."
-                    );
+                    _logger.LogError(ex, "Ошибка при обновлении транзакции");
+                    return Result<Unit>.Failure("Системная ошибка при обновлении транзакции.");
                 }
             }
         }

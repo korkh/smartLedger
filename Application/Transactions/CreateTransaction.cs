@@ -21,7 +21,6 @@ namespace Application.Transactions
         {
             public CommandValidator()
             {
-                // Reusing the TransactionValidator we fixed earlier
                 RuleFor(x => x.Transaction).SetValidator(new TransactionValidator());
             }
         }
@@ -39,60 +38,41 @@ namespace Application.Transactions
                 _logger = logger;
             }
 
-            public async Task<Result<Unit>> Handle(
-                Command request,
-                CancellationToken cancellationToken
-            )
+            public async Task<Result<Unit>> Handle(Command request, CancellationToken ct)
             {
                 _logger.LogInformation(
-                    "Начало процесса создания транзакции для клиента: {ClientId}",
+                    "Создание транзакции для клиента {ClientId}",
                     request.Transaction.ClientId
                 );
 
                 try
                 {
-                    // 1. Проверка существования клиента (у тебя в базе Id - int, а в DTO - Guid,
-                    // проверь соответствие типов в БД. Если в БД Guid, используй его)
+                    // 1. Проверяем, что клиент существует
                     var clientExists = await _context.Clients.AnyAsync(
-                        x => x.Id.ToString() == request.Transaction.ClientId.ToString(),
-                        cancellationToken
+                        x => x.Id == request.Transaction.ClientId,
+                        ct
                     );
 
                     if (!clientExists)
-                    {
-                        _logger.LogWarning(
-                            "Попытка создать транзакцию для несуществующего клиента: {ClientId}",
-                            request.Transaction.ClientId
-                        );
-                        return Result<Unit>.Failure("Указанный клиент не найден в системе.");
-                    }
+                        return Result<Unit>.Failure("Клиент не найден.");
 
-                    // 2. Маппинг DTO в сущность
+                    // 2. Маппинг
                     var transaction = _mapper.Map<Transaction>(request.Transaction);
 
-                    // 3. Добавление в контекст
+                    // 3. Добавление
                     _context.Transactions.Add(transaction);
 
-                    var result = await _context.SaveChangesAsync(cancellationToken) > 0;
+                    var saved = await _context.SaveChangesAsync(ct) > 0;
 
-                    if (!result)
-                    {
-                        _logger.LogError("Транзакция не была сохранена в базе данных.");
+                    if (!saved)
                         return Result<Unit>.Failure("Не удалось сохранить транзакцию.");
-                    }
 
-                    _logger.LogInformation(
-                        "Транзакция успешно создана. ID: {TransactionId}",
-                        transaction.Id
-                    );
                     return Result<Unit>.Success(Unit.Value);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Критическая ошибка при создании транзакции.");
-                    return Result<Unit>.Failure(
-                        "Произошла внутренняя ошибка при создании транзакции."
-                    );
+                    _logger.LogError(ex, "Ошибка при создании транзакции");
+                    return Result<Unit>.Failure("Системная ошибка при создании транзакции.");
                 }
             }
         }

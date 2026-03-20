@@ -52,7 +52,7 @@ namespace Storage
                 }
             }
 
-            // 2. Service Reference (Используем Enum ServiceType вместо строк)
+            // 2. Service Reference (Используем Enum ServiceCategory вместо строк)
             if (!context.ServiceReferences.Any())
             {
                 var serviceRefs = new List<ServiceReference>
@@ -60,7 +60,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "ЭАВР / СНТ",
-                        ServiceType = ServiceType.CargoCustoms,
+                        Category = ServiceCategory.Snt,
                         BasePrice = 5000,
                         AffectsNdsThreshold = true,
                         CreatedBy = "Seed",
@@ -68,7 +68,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Приём на работу / ЗП",
-                        ServiceType = ServiceType.Payroll,
+                        Category = ServiceCategory.Hiring,
                         BasePrice = 7000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
@@ -76,7 +76,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Разноска выписки банка",
-                        ServiceType = ServiceType.BankStatement,
+                        Category = ServiceCategory.BankStatement,
                         BasePrice = 10000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
@@ -84,7 +84,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Месячный налоговый отчет",
-                        ServiceType = ServiceType.TaxReport,
+                        Category = ServiceCategory.TaxReport,
                         BasePrice = 12000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
@@ -92,7 +92,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Квартальный налоговый отчет",
-                        ServiceType = ServiceType.QuarterlyTaxReport,
+                        Category = ServiceCategory.,
                         BasePrice = 35000,
                         AffectsNdsThreshold = true,
                         CreatedBy = "Seed",
@@ -100,7 +100,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Полугодовой налоговый отчет",
-                        ServiceType = ServiceType.SemiAnnualTaxReport,
+                        Category = ServiceCategory.SemiAnnualTaxReport,
                         BasePrice = 25000,
                         AffectsNdsThreshold = true,
                         CreatedBy = "Seed",
@@ -108,7 +108,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Годовой налоговый отчет",
-                        ServiceType = ServiceType.AnnualTaxReport,
+                        Category = ServiceCategory.AnnualTaxReport,
                         BasePrice = 60000,
                         AffectsNdsThreshold = true,
                         CreatedBy = "Seed",
@@ -116,7 +116,7 @@ namespace Storage
                     new ServiceReference
                     {
                         Name = "Стат. отчет",
-                        ServiceType = ServiceType.StatReport,
+                        Category = ServiceCategory.StatReport,
                         BasePrice = 8000,
                         AffectsNdsThreshold = false,
                         CreatedBy = "Seed",
@@ -176,6 +176,7 @@ namespace Storage
                 {
                     var responsibleUser = allUsers[random.Next(allUsers.Count)];
                     var regime = regimes[random.Next(regimes.Length)];
+
                     var companyName = companyNames[random.Next(companyNames.Length)] + " " + i;
 
                     var client = new Client
@@ -190,36 +191,41 @@ namespace Storage
                         Oked = random.Next(10000, 99999).ToString(),
                         EmployeesCount = random.Next(5, 50), // Не 0
                         EcpExpiryDate = DateTime.UtcNow.AddDays(random.Next(10, 300)),
-                        ResponsiblePersonContact = responsibleUser.UserName,
+                        //Sensitive
+                       Sensitive = new ClientSensitive
+                        {
+                StrategicNotes = strategicNotes[random.Next(strategicNotes.Length)],
+                PersonalInfo = personalNotes[random.Next(personalNotes.Length)],
+                EcpPassword = "EcpPassword" + i,
+                EsfPassword = "EsfSecret" + i,
+                BankingPasswords = "BankAuth" + i
 
-                        StrategicNotes = strategicNotes[random.Next(strategicNotes.Length)],
-                        PersonalInfo = personalNotes[random.Next(personalNotes.Length)],
-                        ManagerNotes = managerNotes[random.Next(managerNotes.Length)],
+                       },
 
-                        // TotalDebt мы посчитаем ниже на основе транзакций
-                        BankManagerContact =
-                            "+7 707 "
-                            + random.Next(100, 999)
-                            + " "
-                            + random.Next(10, 99)
-                            + " "
-                            + random.Next(10, 99),
-                        EcpPassword = "EcpPassword" + i,
-                        EsfPassword = "EsfSecret" + i,
-                        BankingPasswords = "BankAuth" + i,
+                        // INTERNAL
+            Internal = new ClientInternal
+            {
+                ResponsiblePersonContact = responsibleUser.UserName,
+                ManagerNotes = managerNotes[random.Next(managerNotes.Length)],
+                BankManagerContact =
+                    "+7 707 " + random.Next(100, 999) + " " + random.Next(10, 99) + " " + random.Next(10, 99),
+            },
+
+
                         CreatedBy = "Seed",
                         CreatedAt = DateTime.UtcNow,
 
                         CurrentTariff = new ClientTariff
-                        {
-                            MonthlyFee = regime == "ОУР" ? 250000 : 75000,
-                            OperationsLimit = regime == "ОУР" ? 500 : 100, // Уменьшим лимит, чтобы легче было вызвать "перерасход"
-                            CommunicationMinutesLimit = 300,
-                            ContractDate = DateTime.UtcNow.AddMonths(-random.Next(1, 12)),
-                            IsActive = true,
-                            CreatedBy = "Seed",
-                            CreatedAt = DateTime.UtcNow,
-                        },
+            {
+                MonthlyFee = regime == "ОУР" ? 250000 : 75000,
+                OperationsLimit = regime == "ОУР" ? 500 : 100,
+                CommunicationMinutesLimit = 300,
+                ContractDate = DateTime.UtcNow.AddMonths(-random.Next(1, 12)),
+                IsActive = true,
+                CreatedBy = "Seed",
+                CreatedAt = DateTime.UtcNow,
+            },
+
                         Transactions = new List<Transaction>(),
                     };
 
@@ -258,7 +264,7 @@ namespace Storage
                                         .UtcNow.AddMonths(-monthOffset)
                                         .AddDays(-random.Next(1, 25)),
                                     ServiceId = srv.Id,
-                                    ServiceType = srv.ServiceType,
+                                    ServiceCategory = srv.ServiceCategory,
                                     IsExtraService = isExtra,
                                     ExtraServiceAmount = extraAmount,
                                     NdsBaseAmount = isExtra ? 0 : srv.BasePrice,

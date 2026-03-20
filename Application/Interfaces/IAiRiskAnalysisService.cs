@@ -18,6 +18,9 @@ namespace Application.Interfaces
 
     public class RiskForecastResult
     {
+        public int PredictedRiskScore { get; set; }
+        public string Trend { get; set; }
+        public string Comment { get; set; }
         public int Month1Score { get; set; }
         public int Month2Score { get; set; }
         public int Month3Score { get; set; }

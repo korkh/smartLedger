@@ -33,15 +33,14 @@ namespace Application.Core
             // --- TRANSACTION ---
             CreateMap<Transaction, TransactionDto>()
                 .ForMember(
-                    dest => dest.ClientName,
-                    opt => opt.MapFrom(src => $"{src.Client.FirstName} {src.Client.LastName}")
+                    d => d.ClientName,
+                    o => o.MapFrom(s => s.Client.FirstName + " " + s.Client.LastName)
                 )
-                .ForMember(
-                    dest => dest.ServiceCategoryName,
-                    opt => opt.MapFrom(src => src.Service.Name)
-                )
-                .ForMember(dest => dest.ServiceCategory, opt => opt.MapFrom(src => src.Category))
-                .ReverseMap();
+                .ForMember(d => d.ServiceCategoryName, o => o.MapFrom(s => s.Service.Name))
+                .ForMember(d => d.ServiceCategory, o => o.MapFrom(s => s.Category))
+                .ReverseMap()
+                .ForMember(d => d.Client, o => o.Ignore())
+                .ForMember(d => d.Service, o => o.Ignore());
 
             // --- DASHBOARD ---
             CreateMap<Client, ClientDashboardDto>()

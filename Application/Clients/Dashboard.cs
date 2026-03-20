@@ -1,6 +1,6 @@
 using Application.Core;
 using Application.Services;
-using Domain.Interfaces; // Для IUserAccessor
+using Domain.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -15,51 +15,63 @@ namespace Application.Clients
             public int Month { get; set; } = DateTime.Now.Month;
         }
 
-        public class Handler(
-            ClientAppService dashboardService,
-            ILogger<Dashboard> logger,
-            IUserAccessor userAccessor
-        ) : IRequestHandler<Query, Result<ClientDashboardDto>>
+        public class Handler : IRequestHandler<Query, Result<ClientDashboardDto>>
         {
-            private readonly ClientAppService _dashboardService = dashboardService;
-            private readonly ILogger<Dashboard> _logger = logger;
-            private readonly IUserAccessor _userAccessor = userAccessor;
+            private readonly ClientAppService _dashboardService;
+            private readonly ILogger<Dashboard> _logger;
+            private readonly IUserAccessor _userAccessor;
+
+            public Handler(
+                ClientAppService dashboardService,
+                ILogger<Dashboard> logger,
+                IUserAccessor userAccessor
+            )
+            {
+                _dashboardService = dashboardService;
+                _logger = logger;
+                _userAccessor = userAccessor;
+            }
 
             public async Task<Result<ClientDashboardDto>> Handle(
                 Query request,
                 CancellationToken cancellationToken
             )
             {
-                var currentUserName = _userAccessor.GetUserName();
-                // Проверяем, есть ли у пользователя роль Admin в токене
+                var userName = _userAccessor.GetUserName();
                 var isAdmin = _userAccessor.IsAdmin();
+                var isSenior = _userAccessor.IsSeniorAccountant();
 
                 _logger.LogInformation(
-                    "Пользователь {User} (Admin: {IsAdmin}) запрашивает Dashboard клиента {Id}",
-                    currentUserName,
+                    "Dashboard request for client {ClientId} by {User} (Admin: {IsAdmin}, Senior: {IsSenior})",
+                    request.Id,
+                    userName,
                     isAdmin,
-                    request.Id
+                    isSenior
                 );
 
                 try
                 {
-                    // Вызываем сервис, передавая имя пользователя для проверки прав доступа
+                    // ---------------------------------------------------------
+                    // Передаём уровни доступа в сервис
+                    // ---------------------------------------------------------
                     var data = await _dashboardService.GetDashboardDataAsync(
                         request.Id,
                         request.Year,
                         request.Month,
-                        currentUserName,
-                        isAdmin
+                        userName,
+                        isAdmin,
+                        isSenior
                     );
 
                     if (data == null)
                     {
                         _logger.LogWarning(
-                            "Доступ запрещен или клиент {Id} не найден для {User}",
+                            "Dashboard access denied or client {Id} not found for user {User}",
                             request.Id,
-                            currentUserName
+                            userName
                         );
-                        // Возвращаем пустой успех, чтобы HandleResult выдал NotFound
+
+                        // Возвращаем Success(null), чтобы контроллер выдал 404
                         return Result<ClientDashboardDto>.Success(null);
                     }
 
@@ -67,8 +79,11 @@ namespace Application.Clients
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Ошибка Dashboard для клиента {Id}", request.Id);
-                    return Result<ClientDashboardDto>.Failure("Ошибка при расчете лимитов.");
+                    _logger.LogError(ex, "Dashboard calculation error for client {Id}", request.Id);
+
+                    return Result<ClientDashboardDto>.Failure(
+                        "Ошибка при расчёте данных дашборда."
+                    );
                 }
             }
         }
