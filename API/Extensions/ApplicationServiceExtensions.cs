@@ -155,12 +155,15 @@ namespace API.Extensions
             services.AddScoped<ISearchExpressionBuilder, SearchExpressionBuilder>();
 
             //Client Services
-            services.AddScoped<ITaxService, TaxService>(); // Если у вас есть интерфейс и реализация
-            services.AddScoped<ClientAppService>(); // Сам сервис для Dashboard
+            services.AddScoped<ITaxService, TaxService>();
+            services.AddScoped<ClientAppService>();
+            services.AddScoped<IBillingService, BillingService>();
+            services.AddScoped<ITariffModule, TariffModule>();
+            services.AddScoped<IOveruseService, OveruseService>();
 
             // AI Services
-            services.AddScoped<IAiRiskAnalysisService, AiRiskAnalysisService>();
-            services.AddScoped<IAiAnalysisService, AiAnalysisService>();
+            services.AddHttpClient<IAiRiskAnalysisService, AiRiskAnalysisService>();
+            services.AddHttpClient<IAiAnalysisService, AiAnalysisService>();
             services.AddScoped<IRiskAlertService, RiskAlertService>();
 
             // Cloudinary

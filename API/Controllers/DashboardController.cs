@@ -9,10 +9,15 @@ namespace API.Controllers
     public class DashboardController : BaseApiController
     {
         private readonly IAiAnalysisService _aiService;
+        private readonly ILogger<DashboardController> _logger;
 
-        public DashboardController(IAiAnalysisService aiService)
+        public DashboardController(
+            IAiAnalysisService aiService,
+            ILogger<DashboardController> logger
+        )
         {
             _aiService = aiService;
+            _logger = logger;
         }
 
         // ---------------------------------------------------------
@@ -56,7 +61,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in AI Analysis: {ex}");
+                _logger.LogError(ex, "Error in AI Analysis");
                 return StatusCode(500, "Internal Server error during AI analysis");
             }
         }

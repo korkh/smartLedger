@@ -38,15 +38,23 @@ namespace Application.Clients
                     if (!_userAccessor.IsAdmin() && !_userAccessor.IsSeniorAccountant())
                         return Result<Unit>.Failure("Недостаточно прав для удаления клиента.");
 
-                    var client = await _context
-                        .Clients.Include(c => c.Transactions)
-                        .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+                    var client = await _context.Clients.FirstOrDefaultAsync(
+                        x => x.Id == request.Id,
+                        cancellationToken
+                    );
 
                     if (client == null)
                         return Result<Unit>.Failure("Клиент не найден.");
 
-                    if (client.Transactions?.Count > 0)
-                        return Result<Unit>.Failure("Нельзя удалить клиента с транзакциями.");
+                    var hasTransactions = await _context.Transactions.AnyAsync(
+                        t => t.ClientId == request.Id,
+                        cancellationToken
+                    );
+
+                    if (hasTransactions)
+                        return Result<Unit>.Failure(
+                            "Нельзя удалить клиента с историей транзакций. Используйте архивацию."
+                        );
 
                     _context.Clients.Remove(client);
 

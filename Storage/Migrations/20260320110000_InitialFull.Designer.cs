@@ -11,7 +11,7 @@ using Storage;
 namespace Storage.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260313105058_InitialFull")]
+    [Migration("20260320110000_InitialFull")]
     partial class InitialFull
     {
         /// <inheritdoc />
@@ -29,14 +29,7 @@ namespace Storage.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BankManagerContact")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("BankingPasswords")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("BinIin")
-                        .HasMaxLength(12)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -51,18 +44,10 @@ namespace Storage.Migrations
                     b.Property<DateTime?>("EcpExpiryDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("EcpPassword")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("EmployeesCount")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("EsfPassword")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDeleted")
@@ -72,11 +57,6 @@ namespace Storage.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ManagerNotes")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NdsStatus")
@@ -85,27 +65,92 @@ namespace Storage.Migrations
                     b.Property<string>("Oked")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PersonalInfo")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ResponsiblePersonContact")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StrategicNotes")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TaxRegime")
-                        .HasColumnType("TEXT");
+                    b.Property<int>("TaxRegime")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("TaxRiskLevel")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TotalDebt")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.ToTable("Clients");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ClientInternal", b =>
+                {
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankManagerContact")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ManagerNotes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResponsiblePersonContact")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ClientId");
+
+                    b.ToTable("ClientInternals");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ClientSensitive", b =>
+                {
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BankingPasswords")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EcpPassword")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EsfPassword")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PersonalInfo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StrategicNotes")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ClientId");
+
+                    b.ToTable("ClientSensitives");
                 });
 
             modelBuilder.Entity("Domain.Entities.ClientTariff", b =>
@@ -113,6 +158,9 @@ namespace Storage.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("AnnualTaxReportsLimit")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("CarriedOverMinutes")
                         .HasColumnType("INTEGER");
@@ -129,6 +177,9 @@ namespace Storage.Migrations
                     b.Property<DateTime>("ContractDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("ContractSigningDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -137,6 +188,24 @@ namespace Storage.Migrations
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("EmployeeCountLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IncludesAnnualReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IncludesHR")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IncludesMonthlyReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IncludesQuarterlyReports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IncludesSemiAnnualReports")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
@@ -151,15 +220,84 @@ namespace Storage.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("MonthlyTaxReportsLimit")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("OperationsLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Package")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("QuarterlyTaxReportsLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SemiAnnualTaxReportsLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StatisticalReportsLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TailAmount")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.ToTable("ClientTariffs");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Invoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ExtraServicesAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("OveruseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TariffAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientId")
-                        .IsUnique();
+                    b.HasIndex("ClientId");
 
-                    b.ToTable("ClientTariffs");
+                    b.ToTable("Invoices");
                 });
 
             modelBuilder.Entity("Domain.Entities.Photo", b =>
@@ -238,21 +376,21 @@ namespace Storage.Migrations
                         new
                         {
                             Id = 1,
-                            ConcurrencyStamp = "6d561b7f-e8e3-4a64-87a5-5d005caa3c52",
+                            ConcurrencyStamp = "181e984c-0fd8-40d2-8f7e-2f55a0bfb6fb",
                             Name = "Junior_Accountant",
                             NormalizedName = "JUNIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 2,
-                            ConcurrencyStamp = "f047cd87-7194-4715-b138-b90fe2b98a69",
+                            ConcurrencyStamp = "920e4539-5a4e-45e0-8b16-873bdb02b4d0",
                             Name = "Senior_Accountant",
                             NormalizedName = "SENIOR_ACCOUNTANT"
                         },
                         new
                         {
                             Id = 3,
-                            ConcurrencyStamp = "51156d69-7a01-4756-98b1-2544c4e89820",
+                            ConcurrencyStamp = "6eed05be-2772-440d-a0de-3e85cc758824",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });
@@ -265,13 +403,17 @@ namespace Storage.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("AffectsNdsThreshold")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ApplicableTaxRegimes")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("BasePrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -285,6 +427,12 @@ namespace Storage.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
@@ -294,20 +442,110 @@ namespace Storage.Migrations
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("MonthNumber")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ServiceType")
+                    b.Property<int>("PlannedMinutesPerMonth")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PlannedOperationsPerMonth")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("StandardTimeMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.ToTable("ServiceReferences");
+                });
+
+            modelBuilder.Entity("Domain.Entities.TariffHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ExtraServicesAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("OverusedMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("OverusedMinutesCost")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OverusedOperations")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("OverusedOperationsCost")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RiskColor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RiskLevel")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RiskRecommendations")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RiskScore")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TariffAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TariffId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalToPay")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UsedMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UsedOperations")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("TariffId");
+
+                    b.ToTable("TariffHistories");
                 });
 
             modelBuilder.Entity("Domain.Entities.Transaction", b =>
@@ -320,6 +558,9 @@ namespace Storage.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("BillableTimeMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Category")
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ClientId")
@@ -344,17 +585,45 @@ namespace Storage.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("ExtraServiceCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ForceMajeureMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsAnnualReport")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsExtraService")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsMonthlyReport")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsQuarterlyReport")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsReport5")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSemiAnnualReport")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsStatReport")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("NdsBaseAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OperationNote")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("OperationsCount")
                         .HasColumnType("INTEGER");
@@ -365,11 +634,14 @@ namespace Storage.Migrations
                     b.Property<Guid?>("ServiceId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ServiceType")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ServiceNote")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("TeamWorkMinutes")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -602,12 +874,45 @@ namespace Storage.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ClientInternal", b =>
+                {
+                    b.HasOne("Domain.Entities.Client", "Client")
+                        .WithOne("Internal")
+                        .HasForeignKey("Domain.Entities.ClientInternal", "ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ClientSensitive", b =>
+                {
+                    b.HasOne("Domain.Entities.Client", "Client")
+                        .WithOne("Sensitive")
+                        .HasForeignKey("Domain.Entities.ClientSensitive", "ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+                });
+
             modelBuilder.Entity("Domain.Entities.ClientTariff", b =>
                 {
                     b.HasOne("Domain.Entities.Client", "Client")
-                        .WithOne("CurrentTariff")
-                        .HasForeignKey("Domain.Entities.ClientTariff", "ClientId")
+                        .WithMany("ClientTariffs")
+                        .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Invoice", b =>
+                {
+                    b.HasOne("Domain.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Client");
@@ -627,6 +932,25 @@ namespace Storage.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.TariffHistory", b =>
+                {
+                    b.HasOne("Domain.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ClientTariff", "Tariff")
+                        .WithMany()
+                        .HasForeignKey("TariffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+
+                    b.Navigation("Tariff");
                 });
 
             modelBuilder.Entity("Domain.Entities.Transaction", b =>
@@ -710,7 +1034,11 @@ namespace Storage.Migrations
 
             modelBuilder.Entity("Domain.Entities.Client", b =>
                 {
-                    b.Navigation("CurrentTariff");
+                    b.Navigation("ClientTariffs");
+
+                    b.Navigation("Internal");
+
+                    b.Navigation("Sensitive");
 
                     b.Navigation("Transactions");
                 });

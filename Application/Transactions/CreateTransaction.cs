@@ -47,19 +47,26 @@ namespace Application.Transactions
 
                 try
                 {
-                    // 1. Проверяем, что клиент существует
-                    var clientExists = await _context.Clients.AnyAsync(
-                        x => x.Id == request.Transaction.ClientId,
-                        ct
-                    );
+                    // 1. Загружаем клиента вместе с тарифом
+                    var client = await _context
+                        .Clients.Include(c => c.CurrentTariff)
+                        .FirstOrDefaultAsync(x => x.Id == request.Transaction.ClientId, ct);
 
-                    if (!clientExists)
+                    if (client == null)
                         return Result<Unit>.Failure("Клиент не найден.");
 
-                    // 2. Маппинг
+                    // 2. Валидация тарифа (подготовка к будущей логике)
+                    if (client.CurrentTariff != null)
+                    {
+                        // Здесь будет логика: проверяем, не превышен ли лимит операций,
+                        // или входит ли категория услуги в текущий пакет.
+                        // Пока оставляем место для маневра.
+                    }
+
+                    // 3. Маппинг DTO -> Entity
                     var transaction = _mapper.Map<Transaction>(request.Transaction);
 
-                    // 3. Добавление
+                    // 4. Добавление и сохранение
                     _context.Transactions.Add(transaction);
 
                     var saved = await _context.SaveChangesAsync(ct) > 0;

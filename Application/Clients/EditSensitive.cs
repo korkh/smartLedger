@@ -42,11 +42,15 @@ namespace Application.Clients
                 CancellationToken cancellationToken
             )
             {
-                // Только Admin
+                // 1. Проверка прав (уже есть, это отлично)
                 if (!_userAccessor.IsAdmin())
-                    return Result<Unit>.Failure(
-                        "Недостаточно прав для изменения чувствительных данных."
+                {
+                    _logger.LogWarning(
+                        "Попытка несанкционированного доступа к Sensitive данным. Пользователь: {User}",
+                        _userAccessor.GetUserName()
                     );
+                    return Result<Unit>.Failure("Недостаточно прав.");
+                }
 
                 var client = await _context
                     .Clients.Include(x => x.Sensitive)
@@ -55,19 +59,40 @@ namespace Application.Clients
                 if (client == null)
                     return Result<Unit>.Failure("Клиент не найден.");
 
-                client.Sensitive ??= new ClientSensitive();
+                // 2. Инициализация, если данных еще нет
+                if (client.Sensitive == null)
+                {
+                    client.Sensitive = new ClientSensitive { ClientId = client.Id };
+                }
 
+                // 3. Умное обновление паролей (защита от "звездочек")
+                // Обновляем только если пришло значение и это не маска
+                if (!string.IsNullOrEmpty(request.EcpPassword) && request.EcpPassword != "********")
+                    client.Sensitive.EcpPassword = request.EcpPassword;
+
+                if (!string.IsNullOrEmpty(request.EsfPassword) && request.EsfPassword != "********")
+                    client.Sensitive.EsfPassword = request.EsfPassword;
+
+                if (
+                    !string.IsNullOrEmpty(request.BankingPasswords)
+                    && request.BankingPasswords != "********"
+                )
+                    client.Sensitive.BankingPasswords = request.BankingPasswords;
+
+                // 4. Текстовые поля обновляем как есть
                 client.Sensitive.StrategicNotes = request.StrategicNotes;
                 client.Sensitive.PersonalInfo = request.PersonalInfo;
-                client.Sensitive.EcpPassword = request.EcpPassword;
-                client.Sensitive.EsfPassword = request.EsfPassword;
-                client.Sensitive.BankingPasswords = request.BankingPasswords;
 
-                bool saved = await _context.SaveChangesAsync(cancellationToken) > 0;
+                // 5. Логируем факт изменения (Audit Trail)
+                _logger.LogInformation(
+                    "Пользователь {Admin} изменил чувствительные данные клиента {ClientId}",
+                    _userAccessor.GetUserName(),
+                    client.Id
+                );
 
-                if (!saved)
-                    return Result<Unit>.Failure("Изменения не были сохранены.");
+                var result = await _context.SaveChangesAsync(cancellationToken) > 0;
 
+                // Если админ нажал сохранить, но ничего не менял — возвращаем Success
                 return Result<Unit>.Success(Unit.Value);
             }
         }

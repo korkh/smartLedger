@@ -1,10 +1,9 @@
 using Application.Core;
 using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Domain.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging; // Added for logging
+using Microsoft.Extensions.Logging;
 using Storage;
 
 namespace Application.Clients
@@ -41,25 +40,46 @@ namespace Application.Clients
                 CancellationToken cancellationToken
             )
             {
-                try
-                {
-                    var client = await _context
-                        .Clients.ProjectTo<ClientDto>(
-                            _mapper.ConfigurationProvider,
-                            new { currentUsername = _userAccessor.GetUserName() }
-                        )
-                        .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+                // Загружаем клиента со всеми уровнями
+                var client = await _context
+                    .Clients.Include(c => c.Internal)
+                    .Include(c => c.Sensitive)
+                    .Include(c => c.ClientTariffs)
+                    .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
-                    if (client == null)
-                        return Result<ClientDto>.Failure("Клиент не найден.");
+                if (client == null)
+                    return Result<ClientDto>.Failure("Клиент не найден.");
 
-                    return Result<ClientDto>.Success(client);
-                }
-                catch (Exception ex)
+                // Мапим в ClientDto. Благодаря ValueConverter, в client.Sensitive.EcpPassword
+                // уже лежит расшифрованный текст.
+                var dto = _mapper.Map<ClientDto>(client);
+
+                // Логика безопасности: фильтруем DTO перед выходом из Application Layer
+                if (!_userAccessor.IsAdmin())
                 {
-                    _logger.LogError(ex, "Ошибка при получении клиента");
-                    return Result<ClientDto>.Failure("Ошибка при получении данных клиента.");
+                    // 1. Clearing fields for non-admin
+                    dto.EcpPassword = "********";
+                    dto.EsfPassword = "********";
+                    dto.BankingPasswords = "********";
+                    dto.StrategicNotes = null;
+                    dto.PersonalInfo = null;
+
+                    // 2. Если это просто Junior, скрываем Level 2
+                    if (!_userAccessor.IsSeniorAccountant())
+                    {
+                        dto.ResponsiblePersonContact = null;
+                        dto.BankManagerContact = null;
+                        dto.ManagerNotes = null;
+                    }
                 }
+
+                // Расчет "дней до истечения ЭЦП"
+                if (client.EcpExpiryDate.HasValue)
+                {
+                    dto.DaysUntilEcpExpires = (client.EcpExpiryDate.Value - DateTime.UtcNow).Days;
+                }
+
+                return Result<ClientDto>.Success(dto);
             }
         }
     }

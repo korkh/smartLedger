@@ -2,6 +2,7 @@ using Application.Clients;
 using Application.Interfaces;
 using Domain.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Storage;
 
 namespace Application.Services
@@ -13,13 +14,15 @@ namespace Application.Services
         private readonly IOveruseService _overuseService;
         private readonly IAiRiskAnalysisService _aiRisk;
         private readonly IRiskAlertService _riskAlert;
+        private readonly ILogger<ClientAppService> _logger;
 
         public ClientAppService(
             DataContext context,
             ITaxService taxService,
             IOveruseService overuseService,
             IAiRiskAnalysisService aiRisk,
-            IRiskAlertService riskAlert
+            IRiskAlertService riskAlert,
+            ILogger<ClientAppService> logger
         )
         {
             _context = context;
@@ -27,6 +30,7 @@ namespace Application.Services
             _overuseService = overuseService;
             _aiRisk = aiRisk;
             _riskAlert = riskAlert;
+            _logger = logger;
         }
 
         public async Task<ClientDashboardDto> GetDashboardDataAsync(
@@ -165,31 +169,39 @@ namespace Application.Services
             // ------------------------------
             // AI STRUCTURED RISK ANALYSIS
             // ------------------------------
-            var aiRisk = await _aiRisk.AnalyzeRiskStructuredAsync(dto);
 
-            if (aiRisk != null)
+            try
             {
-                dto.RiskScore = aiRisk.RiskScore;
-                dto.RiskLevel = aiRisk.RiskLevel;
-                dto.RiskColor = aiRisk.RiskColor;
-                dto.RiskRecommendations = aiRisk.Recommendations;
-                dto.RiskInsight = aiRisk.Summary;
+                var structuredTask = _aiRisk.AnalyzeRiskStructuredAsync(dto);
+                var forecastTask = _aiRisk.ForecastRiskAsync(dto);
+                var insightTask = _aiRisk.AnalyzeRiskAsync(dto);
+
+                await Task.WhenAll(structuredTask, forecastTask, insightTask);
+
+                var aiResult = await structuredTask;
+                if (aiResult != null)
+                {
+                    dto.RiskScore = aiResult.RiskScore;
+                    dto.RiskLevel = aiResult.RiskLevel;
+                    dto.RiskColor = aiResult.RiskColor;
+                    dto.RiskRecommendations = aiResult.Recommendations;
+                    dto.RiskInsight = aiResult.Summary;
+                }
+
+                dto.RiskForecast = await forecastTask;
+                dto.AiInsight = await insightTask;
+
+                // 10. Проверка алертов на основе AI-анализа
+                await _riskAlert.CheckAndNotifyAsync(client, aiResult);
             }
-
-            // ------------------------------
-            // AI RISK FORECAST
-            // ------------------------------
-            dto.RiskForecast = await _aiRisk.ForecastRiskAsync(dto);
-
-            // ------------------------------
-            // AI GENERAL INSIGHT
-            // ------------------------------
-            dto.AiInsight = await _aiRisk.AnalyzeRiskAsync(dto);
-
-            // ------------------------------
-            // RISK ALERTS
-            // ------------------------------
-            await _riskAlert.CheckAndNotifyAsync(client, aiRisk);
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "AI Analysis failed for client {ClientId}. Using local fallback data.",
+                    client.Id
+                );
+            }
 
             return dto;
         }

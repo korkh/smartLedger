@@ -9,26 +9,38 @@ namespace Application.Core
     {
         public MappingProfiles()
         {
-            // --- CLIENT (LEVEL 1–3 DTO) ---
-            CreateMap<Client, ClientDto>()
-                .ForMember(d => d.TaxRegime, o => o.MapFrom(s => s.TaxRegime.ToString()))
+            // Если ClientDto используется как основной контейнер в Handler
+            CreateMap<Client, ClientDto>().IncludeBase<Client, ClientLevel3Dto>();
+            CreateMap<ClientDto, Client>()
+                .ForMember(d => d.Internal, o => o.Ignore())
+                .ForMember(d => d.Sensitive, o => o.Ignore());
+
+            // --- LEVEL 1  ---
+            CreateMap<Client, ClientLevel1Dto>()
+                .ForMember(d => d.TaxRegime, o => o.MapFrom(s => s.TaxRegime.ToString()));
+            ;
+
+            // --- LEVEL 2  ---
+            CreateMap<Client, ClientLevel2Dto>()
+                .IncludeBase<Client, ClientLevel1Dto>()
+                .ForMember(
+                    d => d.ResponsiblePersonContact,
+                    o => o.MapFrom(s => s.Internal.ResponsiblePersonContact)
+                )
+                .ForMember(
+                    d => d.BankManagerContact,
+                    o => o.MapFrom(s => s.Internal.BankManagerContact)
+                )
+                .ForMember(d => d.ManagerNotes, o => o.MapFrom(s => s.Internal.ManagerNotes));
+
+            // --- LEVEL 3 (Чувствительные данные + Шифрование) ---
+            CreateMap<Client, ClientLevel3Dto>()
+                .IncludeBase<Client, ClientLevel2Dto>()
                 .ForMember(d => d.StrategicNotes, o => o.MapFrom(s => s.Sensitive.StrategicNotes))
                 .ForMember(d => d.PersonalInfo, o => o.MapFrom(s => s.Sensitive.PersonalInfo))
-                .ReverseMap()
-                .ForMember(d => d.Sensitive, o => o.Ignore()) // Sensitive маппим вручную
-                .ForAllMembers(opts =>
-                {
-                    opts.Condition(
-                        (src, dest, srcMember, context) =>
-                        {
-                            // Если это Level 3 поле — пропускаем
-                            if (opts.DestinationMember.Name is "StrategicNotes" or "PersonalInfo")
-                                return false;
-
-                            return srcMember != null;
-                        }
-                    );
-                });
+                .ForMember(d => d.EcpPassword, o => o.Ignore())
+                .ForMember(d => d.EsfPassword, o => o.Ignore())
+                .ForMember(d => d.BankingPasswords, o => o.Ignore());
 
             // --- TRANSACTION ---
             CreateMap<Transaction, TransactionDto>()
